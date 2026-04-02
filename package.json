@@ -1,13 +1,12 @@
 {
   "name": "ascii-buddy",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Generate and share your ASCII buddy companion card from Claude Code",
   "bin": {
     "ascii-buddy": "./bin/cli.js"
   },
   "files": [
-    "bin/",
-    "commands/"
+    "bin/"
   ],
   "license": "MIT"
 }

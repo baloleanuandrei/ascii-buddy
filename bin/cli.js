@@ -97,6 +97,9 @@ function fnv1a(str) {
   return h >>> 0;
 }
 
+// Bun is used ONLY if already installed on your system — we never auto-install it.
+// It provides Bun.hash() which matches Claude Code's internal hash for exact stat
+// generation. If Bun isn't found, we fall back to FNV-1a (stats may differ slightly).
 function findBun() {
   const places = [
     path.join(os.homedir(), '.bun', 'bin', 'bun'),
@@ -294,6 +297,22 @@ function generateSVG(buddy) {
 }
 
 // --- Rolodex submission ---
+//
+// WHAT THIS SENDS to the rolodex API (buddy-api.hello-7b8.workers.dev):
+//   - buddy_id     → deterministic ID derived from your hashed user ID + species + rarity
+//   - user_hash    → one-way hash of your account UUID (NOT the raw UUID itself)
+//   - name         → your buddy's name (set by you)
+//   - personality   → your buddy's personality text (set by you)
+//   - species, rarity, eye, hat, shiny, stats → generated buddy attributes
+//   - hatched_at   → when you created your buddy
+//
+// WHAT THIS DOES NOT SEND:
+//   - Your account UUID, email, API keys, or any auth tokens
+//   - Any data from your conversations or Claude Code usage
+//   - Any system information (OS, IP is seen by Cloudflare as with any HTTP request)
+//
+// The API is a Cloudflare Worker that stores buddy data in a D1 database.
+// Source code: https://github.com/baloleanuandrei/ascii-buddy
 
 const API_URL = process.env.BUDDY_API || 'https://buddy-api.hello-7b8.workers.dev';
 
@@ -376,7 +395,18 @@ async function submitToRolodex(buddy, userId) {
 
 // --- Main ---
 
-// Read ~/.claude.json
+// WHAT THIS READS:
+// ~/.claude.json contains your Claude Code config. We read ONLY:
+//   - companion.name        → your buddy's display name (set by you via /buddy)
+//   - companion.personality → your buddy's personality text (set by you via /buddy)
+//   - companion.hatchedAt   → when you created your buddy
+//   - oauthAccount.accountUuid OR userID → used ONLY to generate a deterministic
+//     seed for your buddy's species/rarity/stats. This is NEVER sent to the server
+//     directly — it's hashed into a one-way privacy-safe token (see hashForPrivacy).
+//
+// We do NOT read or send: email, API keys, auth tokens, conversation history,
+// or any other sensitive data from your Claude Code config.
+
 const claudeJsonPath = path.join(os.homedir(), '.claude.json');
 if (!fs.existsSync(claudeJsonPath)) {
   console.error('  ~/.claude.json not found. Is Claude Code installed?');
