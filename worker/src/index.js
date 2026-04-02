@@ -27,20 +27,35 @@ function evictStaleEntries() {
   }
 }
 
-function corsHeaders(env) {
+function isAllowedOrigin(origin, env) {
+  if (!origin) return false;
+  const primary = env?.ALLOWED_ORIGIN || 'https://ascii-buddy.pages.dev';
+  if (origin === primary) return true;
+  // Allow Cloudflare Pages preview deployments (e.g. https://abc123.ascii-buddy.pages.dev)
+  try {
+    const url = new URL(primary);
+    const host = url.hostname; // ascii-buddy.pages.dev
+    return origin.endsWith('.' + host) && origin.startsWith('https://');
+  } catch { return false; }
+}
+
+function corsHeaders(request, env) {
+  const origin = request?.headers?.get('Origin') || '';
+  const allowed = isAllowedOrigin(origin, env) ? origin : '';
   return {
-    'Access-Control-Allow-Origin': env?.ALLOWED_ORIGIN || 'https://buddy.pages.dev',
+    'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
   };
 }
 
-function json(data, status = 200, env = null) {
+function json(data, status = 200, env = null, request = null) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       'Content-Type': 'application/json',
-      ...corsHeaders(env),
+      ...corsHeaders(request, env),
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
       'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
@@ -104,10 +119,10 @@ async function handleSubmit(request, env) {
   try {
     body = await request.json();
   } catch {
-    return json({ error: 'invalid JSON' }, 400, env);
+    return json({ error: 'invalid JSON' }, 400, env, request);
   }
   const err = validateBuddy(body);
-  if (err) return json({ error: err }, 400, env);
+  if (err) return json({ error: err }, 400, env, request);
 
   const { buddy_id, user_hash, name, personality, species, rarity, eye, hat, shiny, stats, hatched_at } = body;
 
@@ -140,7 +155,7 @@ async function handleSubmit(request, env) {
     hatched_at || null,
   ).run();
 
-  return json({ ok: true, buddy_id }, 200, env);
+  return json({ ok: true, buddy_id }, 200, env, request);
 }
 
 async function handleList(request, env) {
@@ -155,12 +170,12 @@ async function handleList(request, env) {
   const params = [];
 
   if (rarity) {
-    if (!VALID_RARITY.has(rarity)) return json({ error: 'invalid rarity filter' }, 400, env);
+    if (!VALID_RARITY.has(rarity)) return json({ error: 'invalid rarity filter' }, 400, env, request);
     conditions.push('rarity = ?');
     params.push(rarity);
   }
   if (species) {
-    if (!VALID_SPECIES.has(species)) return json({ error: 'invalid species filter' }, 400, env);
+    if (!VALID_SPECIES.has(species)) return json({ error: 'invalid species filter' }, 400, env, request);
     conditions.push('species = ?');
     params.push(species);
   }
@@ -189,28 +204,28 @@ async function handleList(request, env) {
     stats: JSON.parse(b.stats),
   }));
 
-  return json({ buddies, total, limit, offset }, 200, env);
+  return json({ buddies, total, limit, offset }, 200, env, request);
 }
 
 async function handleGetBuddy(request, env) {
   const url = new URL(request.url);
   const id = url.pathname.split('/').pop();
-  if (!id || id.length > 20) return json({ error: 'invalid id' }, 400, env);
+  if (!id || id.length > 20) return json({ error: 'invalid id' }, 400, env, request);
 
   const { results } = await env.DB.prepare(
     'SELECT * FROM buddies WHERE buddy_id = ?'
   ).bind(id).all();
 
-  if (!results.length) return json({ error: 'not found' }, 404, env);
+  if (!results.length) return json({ error: 'not found' }, 404, env, request);
 
   const b = results[0];
-  return json({ ...b, shiny: !!b.shiny, stats: JSON.parse(b.stats) }, 200, env);
+  return json({ ...b, shiny: !!b.shiny, stats: JSON.parse(b.stats) }, 200, env, request);
 }
 
 async function handleSearch(request, env) {
   const url = new URL(request.url);
   const q = (url.searchParams.get('q') || '').trim().slice(0, 100); // cap search length
-  if (!q) return json({ buddies: [] }, 200, env);
+  if (!q) return json({ buddies: [] }, 200, env, request);
 
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '20') || 20, 50);
   const pattern = `%${q}%`;
@@ -225,10 +240,10 @@ async function handleSearch(request, env) {
     stats: JSON.parse(b.stats),
   }));
 
-  return json({ buddies }, 200, env);
+  return json({ buddies }, 200, env, request);
 }
 
-async function handleStats(env) {
+async function handleStats(request, env) {
   const { results } = await env.DB.prepare(`
     SELECT
       COUNT(*) as total,
@@ -241,20 +256,20 @@ async function handleStats(env) {
     FROM buddies
   `).all();
 
-  return json(results[0] || {}, 200, env);
+  return json(results[0] || {}, 200, env, request);
 }
 
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders(env) });
+      return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
 
     // Rate limiting
     const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
     if (isRateLimited(ip, request.method)) {
       evictStaleEntries();
-      return json({ error: 'rate limit exceeded' }, 429, env);
+      return json({ error: 'rate limit exceeded' }, 429, env, request);
     }
     evictStaleEntries();
 
@@ -275,11 +290,11 @@ export default {
         return handleSearch(request, env);
       }
       if (path === '/api/stats' && request.method === 'GET') {
-        return handleStats(env);
+        return handleStats(request, env);
       }
-      return json({ error: 'not found' }, 404, env);
+      return json({ error: 'not found' }, 404, env, request);
     } catch (e) {
-      return json({ error: 'internal error' }, 500, env);
+      return json({ error: 'internal error' }, 500, env, request);
     }
   },
 };
