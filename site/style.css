@@ -92,7 +92,7 @@ header {
   background: var(--lcd-bg);
   border-radius: 6px;
   padding: 24px 32px;
-  min-width: 520px;
+  min-width: 700px;
   position: relative;
   overflow: hidden;
 }
@@ -579,7 +579,7 @@ footer .dim { font-size: 0.6rem; margin-top: 6px; }
 }
 
 /* Responsive */
-@media (max-width: 860px) {
+@media (max-width: 680px) {
   .screen-columns {
     flex-direction: column;
   }
