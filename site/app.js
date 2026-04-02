@@ -1,4 +1,4 @@
-const API_BASE = window.BUDDY_API || 'http://localhost:8787';
+const API_BASE = window.BUDDY_API || 'https://buddy-api.hello-7b8.workers.dev';
 const LIMIT = 60;
 
 const RARITY_COLORS = {
