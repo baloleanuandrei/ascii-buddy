@@ -414,7 +414,7 @@ if (buddy.personality) console.log(`  "${buddy.personality.substring(0, 60)}..."
 const userId = claudeJson.oauthAccount?.accountUuid ?? claudeJson.userID ?? 'anon';
 submitToRolodex(buddy, userId).then(result => {
   if (result && result.buddy_id) {
-    console.log(`  \uD83C\uDF10 Added to the buddy rolodex!`);
+    console.log(`  \uD83C\uDF10 Added to the ascii buddy rolodex!`);
     console.log(`  Your buddy ID: ${result.buddy_id}`);
     console.log(`  View it → https://ascii-buddy.pages.dev/#${result.buddy_id}`);
   } else {
