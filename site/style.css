@@ -577,3 +577,37 @@ footer .dim { font-size: 0.6rem; margin-top: 6px; }
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Responsive */
+@media (max-width: 860px) {
+  .screen-columns {
+    flex-direction: column;
+  }
+  .screen-sep {
+    width: 100%;
+    height: 1px;
+    margin: 10px 0;
+  }
+  .screen-right {
+    width: 100%;
+  }
+  .screen {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  body { padding: 0 8px; }
+  header { padding: 20px 0 16px; }
+  .device-shell { padding: 12px 10px 16px; border-radius: 18px 18px 16px 16px; }
+  .screen { padding: 16px 14px; }
+  .screen-title { font-size: 0.7rem; }
+  .screen-cmd { font-size: 0.55rem; }
+  .screen-output { font-size: 0.55rem; }
+  .screen-odds { font-size: 0.55rem; }
+  .screen-odds-note { width: auto; }
+  .grid { grid-template-columns: 1fr; }
+  .controls { margin: 16px auto; }
+  .filters { gap: 4px; }
+  .filter-btn { padding: 5px 8px; font-size: 0.35rem; }
+}

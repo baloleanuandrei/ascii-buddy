@@ -1,29 +1,82 @@
-// Simple in-memory rate limiter (per-isolate, resets on deploy/restart)
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = 60_000; // 1 minute
-const RATE_LIMIT_MAX_POST = 5;    // 5 POSTs per minute per IP
-const RATE_LIMIT_MAX_GET = 60;    // 60 GETs per minute per IP
+// --- Rate limiting ---
+// GET: simple 60/min
+// POST: escalating tiers — tier 0: 5/min, tier 1: 1/min (30min), tier 2: 1/5min (1hr)
 
-function isRateLimited(ip, method) {
-  const max = method === 'POST' ? RATE_LIMIT_MAX_POST : RATE_LIMIT_MAX_GET;
-  const key = `${ip}:${method}`;
+const getRateMap = new Map();
+const postRateMap = new Map();   // ip → { tier, tierStart, windowStart, count }
+
+const TIERS = [
+  { max: 5,  window: 60_000,  cooldown: 0 },           // tier 0: 5 per minute
+  { max: 1,  window: 60_000,  cooldown: 30 * 60_000 }, // tier 1: 1 per minute, 30min cooldown
+  { max: 1,  window: 300_000, cooldown: 60 * 60_000 }, // tier 2: 1 per 5min, 1hr cooldown
+];
+
+function isPostRateLimited(ip) {
   const now = Date.now();
-  const entry = rateLimitMap.get(key);
+  let entry = postRateMap.get(ip);
 
-  if (!entry || now - entry.start > RATE_LIMIT_WINDOW) {
-    rateLimitMap.set(key, { start: now, count: 1 });
+  if (!entry) {
+    postRateMap.set(ip, { tier: 0, tierStart: now, windowStart: now, count: 1 });
+    return false;
+  }
+
+  const tier = TIERS[entry.tier];
+
+  // Check if cooldown has expired → drop back to tier 0
+  if (entry.tier > 0 && now - entry.tierStart > tier.cooldown) {
+    entry.tier = 0;
+    entry.tierStart = now;
+    entry.windowStart = now;
+    entry.count = 1;
+    return false;
+  }
+
+  // Check if current window has expired → reset count
+  if (now - entry.windowStart > tier.window) {
+    entry.windowStart = now;
+    entry.count = 1;
+    return false;
+  }
+
+  entry.count++;
+  if (entry.count > tier.max) {
+    // Escalate to next tier
+    const nextTier = Math.min(entry.tier + 1, TIERS.length - 1);
+    if (nextTier > entry.tier) {
+      entry.tier = nextTier;
+      entry.tierStart = now;
+    }
+    return true;
+  }
+
+  return false;
+}
+
+function isGetRateLimited(ip) {
+  const now = Date.now();
+  const entry = getRateMap.get(ip);
+  if (!entry || now - entry.start > 60_000) {
+    getRateMap.set(ip, { start: now, count: 1 });
     return false;
   }
   entry.count++;
-  if (entry.count > max) return true;
-  return false;
+  return entry.count > 60;
+}
+
+function isRateLimited(ip, method) {
+  return method === 'POST' ? isPostRateLimited(ip) : isGetRateLimited(ip);
 }
 
 // Evict stale entries periodically (prevent memory leak)
 function evictStaleEntries() {
   const now = Date.now();
-  for (const [key, entry] of rateLimitMap) {
-    if (now - entry.start > RATE_LIMIT_WINDOW * 2) rateLimitMap.delete(key);
+  for (const [key, entry] of getRateMap) {
+    if (now - entry.start > 120_000) getRateMap.delete(key);
+  }
+  for (const [ip, entry] of postRateMap) {
+    const tier = TIERS[entry.tier];
+    const maxAge = Math.max(tier.cooldown, tier.window) + 60_000;
+    if (now - entry.tierStart > maxAge) postRateMap.delete(ip);
   }
 }
 
@@ -76,6 +129,32 @@ const VALID_EYES = new Set(['·', '✦', '×', '◉', '@', '°']);
 const VALID_HATS = new Set(['none', 'crown', 'tophat', 'propeller', 'halo', 'wizard', 'beanie', 'tinyduck']);
 const VALID_STATS = new Set(['DEBUGGING', 'PATIENCE', 'CHAOS', 'WISDOM', 'SNARK']);
 
+// --- Content filter ---
+// Block profanity, slurs, URLs, and other garbage in free-text fields
+
+const BLOCKED_PATTERNS = [
+  // URLs and domains
+  /https?:\/\//i,
+  /www\./i,
+  /\.com\b/i, /\.net\b/i, /\.org\b/i, /\.io\b/i, /\.dev\b/i, /\.gg\b/i, /\.xyz\b/i, /\.ru\b/i, /\.cn\b/i, /\.tk\b/i, /\.xxx\b/i,
+  // Profanity / slurs (keeping patterns broad enough to catch variations)
+  /\bf+u+c+k/i, /\bs+h+i+t/i, /\ba+s+s+h+o+l+e/i, /\bb+i+t+c+h/i, /\bc+u+n+t/i, /\bd+i+c+k/i,
+  /\bn+i+g+g/i, /\bf+a+g+g?/i, /\br+e+t+a+r+d/i, /\bk+i+k+e/i, /\bs+p+i+c+k?\b/i, /\bc+h+i+n+k/i,
+  /\bwh+o+r+e/i, /\bs+l+u+t/i, /\bp+o+r+n/i, /\bhentai/i, /\bx+v+i+d/i, /\bx+h+a+m/i,
+  /\bp+e+n+i+s/i, /\bv+a+g+i+n+a/i, /\bc+o+c+k\b/i, /\bp+u+s+s+y/i, /\bb+o+o+b/i, /\bt+i+t+s\b/i,
+  /\bk+i+l+l\s*(y+o+u+r+)?s+e+l+f/i, /\bkys\b/i, /\bs+u+i+c+i+d+e/i,
+  /\bn+a+z+i/i, /\bh+i+t+l+e+r/i, /\bh+o+l+o+c+a+u+s+t/i,
+  /\b(s+e+x+|r+a+p+e+|m+o+l+e+s+t)/i,
+];
+
+function containsBlockedContent(text) {
+  if (!text) return false;
+  for (const pattern of BLOCKED_PATTERNS) {
+    if (pattern.test(text)) return true;
+  }
+  return false;
+}
+
 // Validate buddy payload
 function validateBuddy(body) {
   if (!body || typeof body !== 'object') return 'invalid body';
@@ -93,6 +172,10 @@ function validateBuddy(body) {
   if (body.user_hash.length > 30) return 'user_hash too long';
   if (body.name.length > 100) return 'name too long';
   if (body.personality && body.personality.length > 500) return 'personality too long';
+
+  // Content filter on free-text fields
+  if (containsBlockedContent(body.name)) return 'name contains blocked content';
+  if (containsBlockedContent(body.personality)) return 'personality contains blocked content';
   if (body.hatched_at != null && typeof body.hatched_at !== 'string' && typeof body.hatched_at !== 'number') return 'invalid hatched_at';
   if (typeof body.hatched_at === 'string' && body.hatched_at.length > 30) return 'invalid hatched_at';
 
