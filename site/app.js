@@ -255,7 +255,7 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
 // Load more
 loadMoreBtn.addEventListener('click', () => fetchBuddies(true));
 
-// Deep link: if URL has #BUDDY-ID, highlight that buddy
+// Deep link: if URL has #BUDDY-ID, show that buddy via search
 async function handleDeepLink() {
   const hash = location.hash.slice(1);
   if (!hash) return false;
@@ -265,10 +265,16 @@ async function handleDeepLink() {
     if (!res.ok) return false;
     const buddy = await res.json();
 
-    // Render the highlighted buddy at the top
+    // Populate search with the buddy ID
+    searchInput.value = hash;
+    currentSearch = hash;
+
+    // Render the highlighted buddy
+    grid.innerHTML = '';
+    loading.hidden = true;
     const card = renderCard(buddy);
     card.classList.add('highlighted');
-    grid.prepend(card);
+    grid.appendChild(card);
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return true;
   } catch {

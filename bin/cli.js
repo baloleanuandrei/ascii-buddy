@@ -114,23 +114,9 @@ function findBun() {
   return null;
 }
 
-function installBun() {
-  console.log('  Installing Bun (needed for exact hash matching)...');
-  try {
-    require('child_process').execSync('curl -fsSL https://bun.sh/install | bash', {
-      timeout: 30000,
-      stdio: ['pipe', 'ignore', 'ignore'],
-    });
-    return findBun();
-  } catch (e) {
-    return null;
-  }
-}
-
 function computeHash(input) {
   // Try Bun.hash first (matches Claude Code's behavior exactly)
-  let bunPath = findBun();
-  if (!bunPath) bunPath = installBun();
+  const bunPath = findBun();
 
   if (bunPath) {
     try {
@@ -393,10 +379,21 @@ async function submitToRolodex(buddy, userId) {
 // Read ~/.claude.json
 const claudeJsonPath = path.join(os.homedir(), '.claude.json');
 if (!fs.existsSync(claudeJsonPath)) {
-  console.error('~/.claude.json not found. Is Claude Code installed?');
+  console.error('  ~/.claude.json not found. Is Claude Code installed?');
   process.exit(1);
 }
 const claudeJson = JSON.parse(fs.readFileSync(claudeJsonPath, 'utf-8'));
+
+if (!claudeJson.companion) {
+  console.error('');
+  console.error('  No companion found in ~/.claude.json.');
+  console.error('  To create your buddy:');
+  console.error('    1. Open Claude Code');
+  console.error('    2. Run /buddy');
+  console.error('    3. Come back and run npx ascii-buddy again');
+  console.error('');
+  process.exit(1);
+}
 
 // Generate buddy from real data
 const buddy = generateBuddy(claudeJson);
