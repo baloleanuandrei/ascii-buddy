@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const OUTPUT_PATH = path.join(os.homedir(), 'tamagochi_buddy.svg');
+const OUTPUT_PATH = path.join(os.homedir(), 'ascii_buddy.svg');
 
 // --- Companion data extraction ---
 

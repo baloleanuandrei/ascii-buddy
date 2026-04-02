@@ -230,7 +230,7 @@ searchInput.addEventListener('input', () => {
 
   if (!q) {
     // Clear search, go back to normal listing
-    empty.textContent = 'no buddies found yet. run npx tamagochi to add yours!';
+    empty.textContent = 'no buddies found yet. run npx ascii-buddy to add yours!';
     fetchBuddies();
     return;
   }

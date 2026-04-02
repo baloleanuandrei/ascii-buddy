@@ -52,7 +52,7 @@ header {
   padding: 40px 0 24px;
 }
 
-/* The device: a tamagotchi shell with a CRT/terminal screen */
+/* The device shell with a CRT/terminal screen */
 .device {
   display: inline-block;
   position: relative;
@@ -307,7 +307,7 @@ header {
   padding-bottom: 24px;
 }
 
-/* Cards: terminal windows inside mini tamagotchi shells */
+/* Cards: terminal windows inside mini device shells */
 .card {
   background: var(--shell);
   border: 1px solid var(--border);

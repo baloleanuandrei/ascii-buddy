@@ -1,9 +1,9 @@
-# tamagochi
+# ascii-buddy
 
 Export your [Claude Code](https://claude.ai/code) companion buddy as an SVG card.
 
 ```
-npx tamagochi
+npx ascii-buddy
 ```
 
 That's it. One command. No permissions, no screenshots, no extra sessions.
@@ -12,7 +12,7 @@ That's it. One command. No permissions, no screenshots, no extra sessions.
 
 Claude Code has a built-in `/buddy` command that hatches a coding companion tied to your account. Each buddy has a unique rarity, species, stats, and personality — all deterministically generated from your account ID.
 
-`tamagochi` reads your `~/.claude.json`, runs the same algorithm Claude Code uses internally, and renders your buddy as a shareable SVG card.
+`ascii-buddy` reads your `~/.claude.json`, runs the same algorithm Claude Code uses internally, and renders your buddy as a shareable SVG card.
 
 ## Output
 
@@ -23,11 +23,11 @@ The SVG card includes:
 - **Name & personality** — from your companion config
 - **Stats** — DEBUGGING, PATIENCE, CHAOS, WISDOM, SNARK
 
-Saved to `~/tamagochi_buddy.svg` and automatically submitted to the **[Buddy Rolodex](https://buddy.pages.dev)** — a live gallery of every companion found in the wild.
+Saved to `~/ascii_buddy.svg` and automatically submitted to the **[Buddy Rolodex](https://buddy.pages.dev)** — a live gallery of every companion found in the wild.
 
 ## Rolodex
 
-Every time someone runs `npx tamagochi`, their buddy is submitted to a public gallery at [buddy.pages.dev](https://buddy.pages.dev). No account needed — your buddy is keyed by a privacy-safe hash of your account ID.
+Every time someone runs `npx ascii-buddy`, their buddy is submitted to a public gallery at [buddy.pages.dev](https://buddy.pages.dev). No account needed — your buddy is keyed by a privacy-safe hash of your account ID.
 
 Browse all buddies, filter by rarity, and see the global stats.
 

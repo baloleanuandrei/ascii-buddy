@@ -1,9 +1,9 @@
 {
   "name": "ascii-buddy",
   "version": "1.0.1",
-  "description": "Install the /tamagochi slash command for Claude Code",
+  "description": "Generate and share your ASCII buddy companion card from Claude Code",
   "bin": {
-    "tamagochi": "./bin/cli.js"
+    "ascii-buddy": "./bin/cli.js"
   },
   "files": [
     "bin/",

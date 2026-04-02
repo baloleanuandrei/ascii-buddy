@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ASCII Buddy — Tamagotchi Terminal</title>
+  <title>ASCII Buddy</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -17,9 +17,9 @@
             <div class="screen-title">$ ascii buddy</div>
             <div class="screen-sub">> every companion, collected</div>
             <div class="screen-divider"></div>
-            <div class="screen-cmd">$ npx tamagochi</div>
+            <div class="screen-cmd">$ npx ascii-buddy</div>
             <div class="screen-output">
-              <div class="out-line success">Buddy card saved to: ~/tamagochi_buddy.svg</div>
+              <div class="out-line success">Buddy card saved to: ~/ascii_buddy.svg</div>
               <div class="out-line name">Souptuft — ★★★ RARE CHONK</div>
               <div class="out-line">Added to the ascii buddy rolodex!</div>
               <div class="out-line link">View it → asciibuddy.dev<span class="screen-cursor"></span></div>
@@ -64,13 +64,13 @@
 
   <div id="grid" class="grid"></div>
   <div id="loading" class="loading">loading buddies...</div>
-  <div id="empty" class="empty" hidden>no buddies found yet. run <code>npx tamagochi</code> to add yours!</div>
+  <div id="empty" class="empty" hidden>no buddies found yet. run <code>npx ascii-buddy</code> to add yours!</div>
   <div id="load-more" class="load-more" hidden>
     <button id="load-more-btn" class="load-more-btn">LOAD MORE</button>
   </div>
 
   <footer>
-    <p>$ <code>npx tamagochi</code></p>
+    <p>$ <code>npx ascii-buddy</code></p>
     <p class="dim">companions are unique per claude code account</p>
   </footer>
 
