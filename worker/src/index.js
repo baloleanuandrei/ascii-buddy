@@ -16,35 +16,41 @@ function isPostRateLimited(ip) {
   let entry = postRateMap.get(ip);
 
   if (!entry) {
-    postRateMap.set(ip, { tier: 0, tierStart: now, windowStart: now, count: 1 });
+    postRateMap.set(ip, { tier: 0, tierStart: now, windowStart: now, count: 1, escalated: false });
     return false;
   }
 
-  const tier = TIERS[entry.tier];
+  const tierConfig = TIERS[entry.tier];
 
   // Check if cooldown has expired → drop back to tier 0
-  if (entry.tier > 0 && now - entry.tierStart > tier.cooldown) {
+  if (entry.tier > 0 && now - entry.tierStart > tierConfig.cooldown) {
     entry.tier = 0;
     entry.tierStart = now;
     entry.windowStart = now;
     entry.count = 1;
+    entry.escalated = false;
     return false;
   }
 
   // Check if current window has expired → reset count
-  if (now - entry.windowStart > tier.window) {
+  if (now - entry.windowStart > tierConfig.window) {
     entry.windowStart = now;
     entry.count = 1;
+    entry.escalated = false;
     return false;
   }
 
   entry.count++;
-  if (entry.count > tier.max) {
-    // Escalate to next tier
-    const nextTier = Math.min(entry.tier + 1, TIERS.length - 1);
-    if (nextTier > entry.tier) {
-      entry.tier = nextTier;
-      entry.tierStart = now;
+  if (entry.count > tierConfig.max) {
+    // Escalate once per window — prevent double-jumping tiers
+    if (!entry.escalated) {
+      const nextTier = Math.min(entry.tier + 1, TIERS.length - 1);
+      if (nextTier > entry.tier) {
+        entry.tier = nextTier;
+        entry.tierStart = now;
+        entry.windowStart = now; // new tier gets a fresh window
+      }
+      entry.escalated = true;
     }
     return true;
   }
@@ -137,20 +143,22 @@ const BLOCKED_PATTERNS = [
   /https?:\/\//i,
   /www\./i,
   /\.com\b/i, /\.net\b/i, /\.org\b/i, /\.io\b/i, /\.dev\b/i, /\.gg\b/i, /\.xyz\b/i, /\.ru\b/i, /\.cn\b/i, /\.tk\b/i, /\.xxx\b/i,
-  // Profanity / slurs (keeping patterns broad enough to catch variations)
-  /\bf+u+c+k/i, /\bs+h+i+t/i, /\ba+s+s+h+o+l+e/i, /\bb+i+t+c+h/i, /\bc+u+n+t/i, /\bd+i+c+k/i,
-  /\bn+i+g+g/i, /\bf+a+g+g?/i, /\br+e+t+a+r+d/i, /\bk+i+k+e/i, /\bs+p+i+c+k?\b/i, /\bc+h+i+n+k/i,
-  /\bwh+o+r+e/i, /\bs+l+u+t/i, /\bp+o+r+n/i, /\bhentai/i, /\bx+v+i+d/i, /\bx+h+a+m/i,
-  /\bp+e+n+i+s/i, /\bv+a+g+i+n+a/i, /\bc+o+c+k\b/i, /\bp+u+s+s+y/i, /\bb+o+o+b/i, /\bt+i+t+s\b/i,
-  /\bk+i+l+l\s*(y+o+u+r+)?s+e+l+f/i, /\bkys\b/i, /\bs+u+i+c+i+d+e/i,
-  /\bn+a+z+i/i, /\bh+i+t+l+e+r/i, /\bh+o+l+o+c+a+u+s+t/i,
-  /\b(s+e+x+|r+a+p+e+|m+o+l+e+s+t)/i,
+  // Profanity / slurs — no \b since _ and other separators bypass word boundaries
+  /f+u+c+k/i, /s+h+i+t/i, /a+s+s+h+o+l+e/i, /b+i+t+c+h/i, /c+u+n+t/i,
+  /n+i+g+g/i, /f+a+g+g/i, /r+e+t+a+r+d/i, /k+i+k+e/i, /s+p+i+c+k/i, /c+h+i+n+k/i,
+  /wh+o+r+e/i, /s+l+u+t/i, /p+o+r+n/i, /hentai/i, /x+v+i+d/i, /x+h+a+m/i,
+  /p+e+n+i+s/i, /v+a+g+i+n+a/i, /p+u+s+s+y/i,
+  /k+i+l+l\s*(y+o+u+r+)?s+e+l+f/i, /\bkys\b/i, /s+u+i+c+i+d+e/i,
+  /n+a+z+i/i, /h+i+t+l+e+r/i, /h+o+l+o+c+a+u+s+t/i,
+  /r+a+p+e/i, /m+o+l+e+s+t/i,
 ];
 
 function containsBlockedContent(text) {
   if (!text) return false;
+  // Normalize: strip common separator tricks (underscores, dashes, dots between letters)
+  const normalized = text.replace(/[_\-.\s]+/g, '');
   for (const pattern of BLOCKED_PATTERNS) {
-    if (pattern.test(text)) return true;
+    if (pattern.test(text) || pattern.test(normalized)) return true;
   }
   return false;
 }
