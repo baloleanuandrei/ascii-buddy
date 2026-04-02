@@ -1,0 +1,14 @@
+{
+  "name": "buddy-api",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create buddy-db",
+    "db:init": "wrangler d1 execute buddy-db --file=schema.sql",
+    "db:init:local": "wrangler d1 execute buddy-db --local --file=schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "3.99.0"
+  }
+}

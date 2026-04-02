@@ -1,0 +1,492 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #1a1520;
+  --surface: #0f0c14;
+  --border: #2a2435;
+  --text: #d4f0c0;
+  --dim: #6a8a5a;
+  --lcd-bg: #152010;
+  --lcd-text: #90ff60;
+  --lcd-dim: #50a038;
+  --lcd-bright: #b8ff88;
+  --shell: #3a2850;
+  --shell-light: #4a3868;
+  --shell-edge: #2a1a3a;
+  --btn-color: #6a5a7a;
+  --common: #5a6a4a;
+  --uncommon: #4aaa4a;
+  --rare: #4a9aff;
+  --epic: #aa6aff;
+  --legendary: #ffcc33;
+}
+
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(circle at 50% 30%, rgba(58,40,80,0.4), transparent 60%);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  min-height: 100vh;
+  padding: 0 20px;
+}
+
+/* Subtle scanlines */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.06) 3px,
+    rgba(0, 0, 0, 0.06) 6px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+header {
+  text-align: center;
+  padding: 40px 0 24px;
+}
+
+/* The device: a tamagotchi shell with a CRT/terminal screen */
+.device {
+  display: inline-block;
+  position: relative;
+}
+
+.device-shell {
+  background: linear-gradient(180deg, var(--shell-light), var(--shell));
+  border-radius: 28px 28px 24px 24px;
+  padding: 20px 24px 28px;
+  box-shadow:
+    0 4px 0 var(--shell-edge),
+    0 8px 30px rgba(0,0,0,0.4),
+    inset 0 2px 0 rgba(255,255,255,0.06);
+  position: relative;
+}
+
+/* Highlight shine on shell */
+.device-shell::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 15%;
+  width: 40%;
+  height: 10px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+}
+
+.screen-bezel {
+  background: #111;
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.screen {
+  background: var(--lcd-bg);
+  border-radius: 6px;
+  padding: 20px 28px;
+  min-width: 280px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* CRT flicker */
+.screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(144,255,96,0.015) 2px,
+    rgba(144,255,96,0.015) 4px
+  );
+  pointer-events: none;
+}
+
+/* Phosphor glow */
+.screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(144,255,96,0.04), transparent 70%);
+  pointer-events: none;
+}
+
+.screen-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.8rem;
+  color: var(--lcd-text);
+  text-shadow: 0 0 10px rgba(144,255,96,0.5);
+  margin-bottom: 4px;
+}
+
+.screen-sub {
+  font-size: 0.6rem;
+  color: var(--lcd-dim);
+  text-shadow: 0 0 4px rgba(144,255,96,0.15);
+}
+
+.screen-divider {
+  height: 1px;
+  background: var(--lcd-dim);
+  opacity: 0.3;
+  margin: 10px 0;
+}
+
+.screen-cmd {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.55rem;
+  color: var(--lcd-text);
+  text-shadow: 0 0 8px rgba(144,255,96,0.4);
+  margin-bottom: 8px;
+}
+
+.screen-output {
+  font-size: 0.5rem;
+  line-height: 1.8;
+}
+
+.out-line {
+  color: var(--lcd-dim);
+  text-shadow: 0 0 3px rgba(144,255,96,0.1);
+}
+
+.out-line.success {
+  color: var(--lcd-text);
+}
+
+.out-line.name {
+  color: var(--lcd-bright);
+  text-shadow: 0 0 8px rgba(184,255,136,0.35);
+}
+
+.out-line.link {
+  color: var(--lcd-text);
+}
+
+.screen-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 12px;
+  background: var(--lcd-text);
+  animation: blink 1s step-end infinite;
+  vertical-align: text-bottom;
+  margin-left: 2px;
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+
+/* D-pad and buttons */
+.device-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding: 0 8px;
+}
+
+.claude-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 6px rgba(224, 122, 47, 0.4));
+}
+
+.action-btns {
+  display: flex;
+  gap: 10px;
+}
+.action-btn {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--btn-color);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.action-btn.a { background: #6aaa6a; }
+.action-btn.b { background: #aa6a6a; }
+
+/* Speaker grille */
+.speaker {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  margin-top: 10px;
+}
+.speaker-line {
+  width: 24px;
+  height: 2px;
+  background: var(--shell-edge);
+  border-radius: 1px;
+}
+
+.stats {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 24px;
+  font-size: 0.7rem;
+}
+.stat { color: var(--dim); display: flex; align-items: center; gap: 6px; }
+.stat .num { color: var(--lcd-text); font-weight: 700; text-shadow: 0 0 4px rgba(144,255,96,0.2); }
+
+.controls {
+  max-width: 800px;
+  margin: 24px auto;
+}
+.search-wrap { max-width: 380px; margin: 0 auto 14px; }
+.search-input {
+  width: 100%;
+  background: var(--lcd-bg);
+  border: 2px solid var(--border);
+  color: var(--lcd-text);
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding: 10px 16px;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s;
+  caret-color: var(--lcd-text);
+}
+.search-input::placeholder { color: var(--lcd-dim); }
+.search-input:focus {
+  border-color: var(--lcd-dim);
+  box-shadow: 0 0 12px rgba(144,255,96,0.08);
+}
+
+.filters {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.filter-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--dim);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.4rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.filter-btn:hover { color: var(--lcd-text); border-color: var(--lcd-dim); }
+.filter-btn.active {
+  background: var(--lcd-bg);
+  border-color: var(--lcd-text);
+  color: var(--lcd-text);
+  box-shadow: 0 0 8px rgba(144,255,96,0.1);
+}
+
+.dot { width: 6px; height: 6px; border-radius: 2px; display: inline-block; }
+.dot.common { background: var(--common); }
+.dot.uncommon { background: var(--uncommon); }
+.dot.rare { background: var(--rare); }
+.dot.epic { background: var(--epic); }
+.dot.legendary { background: var(--legendary); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 14px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-bottom: 24px;
+}
+
+/* Cards: terminal windows inside mini tamagotchi shells */
+.card {
+  background: var(--shell);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 10px;
+  transition: all 0.25s;
+  animation: fadeIn 0.3s ease forwards;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 0 var(--shell-edge);
+}
+
+.card-inner {
+  background: var(--lcd-bg);
+  border-radius: 8px;
+  padding: 18px;
+  position: relative;
+}
+
+/* Scanline on cards */
+.card-inner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(144,255,96,0.01) 2px,
+    rgba(144,255,96,0.01) 4px
+  );
+  pointer-events: none;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3), 0 2px 0 var(--shell-edge);
+}
+
+.card.shiny {
+  box-shadow: 0 0 16px rgba(255,204,51,0.12), 0 2px 0 var(--shell-edge);
+}
+.card.shiny .card-inner {
+  border: 1px solid rgba(255,204,51,0.3);
+}
+.card.shiny::after {
+  content: '✦ SHINY';
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.35rem;
+  color: #ffcc33;
+  z-index: 1;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.rarity-badge {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.45rem;
+  letter-spacing: 0.04em;
+}
+.species-badge {
+  font-size: 0.65rem;
+  color: var(--lcd-dim);
+  text-transform: uppercase;
+}
+
+.card-face {
+  font-size: 14px;
+  line-height: 1.3;
+  margin-bottom: 8px;
+  white-space: pre;
+  color: var(--lcd-text);
+  text-shadow: 0 0 4px rgba(144,255,96,0.2);
+}
+.card-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 3px;
+  color: var(--lcd-bright);
+  text-shadow: 0 0 4px rgba(160,255,112,0.2);
+}
+.card-id {
+  font-size: 0.65rem;
+  color: var(--lcd-dim);
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.card-id:hover { color: var(--lcd-text); }
+
+.card.highlighted .card-inner {
+  border: 1px solid #ffcc33;
+  box-shadow: 0 0 16px rgba(255,204,51,0.1);
+}
+
+.card-personality {
+  font-size: 0.75rem;
+  color: var(--lcd-dim);
+  font-style: italic;
+  margin-bottom: 10px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; }
+.stat-row { display: flex; align-items: center; gap: 5px; font-size: 0.65rem; }
+.stat-label { color: var(--lcd-dim); width: 56px; flex-shrink: 0; }
+.stat-bar { flex: 1; height: 3px; background: rgba(144,255,96,0.08); border-radius: 0; overflow: hidden; }
+.stat-fill { height: 100%; transition: width 0.3s ease; }
+.stat-val { width: 22px; text-align: right; color: var(--lcd-text); font-size: 0.6rem; }
+
+/* Bottom buttons on each card */
+.card-btns {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.card-btn {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--btn-color);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.3);
+}
+
+.loading, .empty {
+  text-align: center;
+  color: var(--dim);
+  padding: 48px 0;
+  font-size: 0.8rem;
+}
+.empty code {
+  background: var(--lcd-bg);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--lcd-text);
+}
+
+.load-more { text-align: center; padding: 24px 0; }
+.load-more-btn {
+  background: var(--shell);
+  border: 2px solid var(--lcd-dim);
+  color: var(--lcd-text);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.4rem;
+  padding: 10px 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.load-more-btn:hover {
+  background: var(--lcd-bg);
+  box-shadow: 0 0 12px rgba(144,255,96,0.1);
+}
+
+footer {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--dim);
+  font-size: 0.7rem;
+}
+footer code { color: var(--lcd-text); text-shadow: 0 0 4px rgba(144,255,96,0.2); }
+footer .dim { font-size: 0.6rem; margin-top: 6px; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
