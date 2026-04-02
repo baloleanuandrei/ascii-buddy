@@ -23,19 +23,41 @@ The SVG card includes:
 - **Name & personality** — from your companion config
 - **Stats** — DEBUGGING, PATIENCE, CHAOS, WISDOM, SNARK
 
-Saved to `~/ascii_buddy.svg` and automatically submitted to the **[Buddy Rolodex](https://buddy.pages.dev)** — a live gallery of every companion found in the wild.
+Saved to `~/ascii_buddy.svg` and automatically submitted to the **[Buddy Rolodex](https://asciibuddy.dev)** — a live gallery of every companion found in the wild.
 
 ## Rolodex
 
-Every time someone runs `npx ascii-buddy`, their buddy is submitted to a public gallery at [buddy.pages.dev](https://buddy.pages.dev). No account needed — your buddy is keyed by a privacy-safe hash of your account ID.
+Every time someone runs `npx ascii-buddy`, their buddy is submitted to a public gallery at [asciibuddy.dev](https://asciibuddy.dev). No account needed — your buddy is keyed by a privacy-safe hash of your account ID.
 
 Browse all buddies, filter by rarity, and see the global stats.
+
+## Privacy & transparency
+
+This tool reads your `~/.claude.json` file. Here's exactly what it accesses and what it doesn't:
+
+**What it reads (locally only):**
+- `companion.name` — your buddy's display name
+- `companion.personality` — your buddy's personality text
+- `companion.hatchedAt` — when you created your buddy
+- `oauthAccount.accountUuid` — used ONLY as a seed to generate your buddy's species/rarity/stats
+
+**What it sends to the [rolodex API](https://buddy-api.hello-7b8.workers.dev):**
+- Your buddy's generated attributes (name, personality, species, rarity, eye, hat, shiny, stats)
+- A one-way hash of your account UUID (`user_hash`) — the raw UUID is never sent
+- A deterministic buddy ID derived from the hash
+
+**What it does NOT read or send:**
+- Email, API keys, auth tokens, or session data
+- Conversation history or Claude Code usage data
+- System information (OS, hostname, etc.)
+
+The API is a Cloudflare Worker backed by a D1 database. All source code (CLI, worker, and site) is in this repo.
 
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) installed with a companion already hatched (run `/buddy` once first)
-- [Bun](https://bun.sh) for exact hash matching (falls back to FNV-1a if unavailable, which may produce different results)
 - Node.js 16+
+- [Bun](https://bun.sh) (optional) — if installed, uses `Bun.hash()` for exact stat matching with Claude Code. Falls back to FNV-1a if unavailable, which may produce slightly different stats.
 
 ## How it works
 
