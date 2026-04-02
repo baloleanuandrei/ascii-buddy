@@ -1,5 +1,5 @@
 {
-  "name": "tamagochi",
+  "name": "ascii-buddy",
   "version": "1.0.0",
   "description": "Install the /tamagochi slash command for Claude Code",
   "bin": {
