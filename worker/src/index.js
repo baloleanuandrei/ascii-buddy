@@ -91,7 +91,8 @@ function validateBuddy(body) {
   if (body.user_hash.length > 30) return 'user_hash too long';
   if (body.name.length > 100) return 'name too long';
   if (body.personality && body.personality.length > 500) return 'personality too long';
-  if (body.hatched_at && (typeof body.hatched_at !== 'string' || body.hatched_at.length > 30)) return 'invalid hatched_at';
+  if (body.hatched_at != null && typeof body.hatched_at !== 'string' && typeof body.hatched_at !== 'number') return 'invalid hatched_at';
+  if (typeof body.hatched_at === 'string' && body.hatched_at.length > 30) return 'invalid hatched_at';
 
   // Whitelist validation
   if (!VALID_SPECIES.has(body.species)) return 'invalid species';
