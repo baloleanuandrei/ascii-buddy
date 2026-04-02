@@ -1,6 +1,6 @@
 {
   "name": "ascii-buddy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Install the /tamagochi slash command for Claude Code",
   "bin": {
     "tamagochi": "./bin/cli.js"
