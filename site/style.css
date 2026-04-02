@@ -91,8 +91,8 @@ header {
 .screen {
   background: var(--lcd-bg);
   border-radius: 6px;
-  padding: 20px 28px;
-  min-width: 280px;
+  padding: 24px 32px;
+  min-width: 520px;
   position: relative;
   overflow: hidden;
 }
@@ -121,16 +121,48 @@ header {
   pointer-events: none;
 }
 
+.screen-columns {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+}
+.screen-left {
+  flex: 1;
+  min-width: 0;
+}
+.screen-sep {
+  width: 1px;
+  background: var(--lcd-dim);
+  opacity: 0.2;
+  margin: 0 20px;
+  flex-shrink: 0;
+}
+.screen-right {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.screen-odds-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.525rem;
+  color: var(--lcd-dim);
+  text-shadow: 0 0 4px rgba(144,255,96,0.15);
+  margin-bottom: 10px;
+  letter-spacing: 0.05em;
+}
+
 .screen-title {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.8rem;
+  font-size: 0.925rem;
   color: var(--lcd-text);
   text-shadow: 0 0 10px rgba(144,255,96,0.5);
   margin-bottom: 4px;
 }
 
 .screen-sub {
-  font-size: 0.6rem;
+  font-size: 0.725rem;
   color: var(--lcd-dim);
   text-shadow: 0 0 4px rgba(144,255,96,0.15);
 }
@@ -144,14 +176,14 @@ header {
 
 .screen-cmd {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.55rem;
+  font-size: 0.675rem;
   color: var(--lcd-text);
   text-shadow: 0 0 8px rgba(144,255,96,0.4);
   margin-bottom: 8px;
 }
 
 .screen-output {
-  font-size: 0.5rem;
+  font-size: 0.625rem;
   line-height: 1.8;
 }
 
@@ -238,6 +270,61 @@ header {
 }
 .stat { color: var(--dim); display: flex; align-items: center; gap: 6px; }
 .stat .num { color: var(--lcd-text); font-weight: 700; text-shadow: 0 0 4px rgba(144,255,96,0.2); }
+
+.screen-odds {
+  font-size: 0.625rem;
+  line-height: 2;
+}
+.screen-odds-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--lcd-dim);
+  text-shadow: 0 0 3px rgba(144,255,96,0.1);
+}
+.screen-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 2px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.screen-odds-val {
+  margin-left: auto;
+  color: var(--lcd-text);
+  text-shadow: 0 0 6px rgba(144,255,96,0.3);
+}
+.screen-odds-note {
+  color: var(--lcd-dim);
+  opacity: 0.6;
+  width: 72px;
+  text-align: right;
+}
+.screen-odds-shiny {
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(144,255,96,0.1);
+  color: var(--lcd-bright);
+  text-shadow: 0 0 6px rgba(184,255,136,0.3);
+}
+.screen-odds-shiny .screen-odds-val {
+  color: var(--lcd-bright);
+}
+.screen-odds-shiny .screen-odds-note {
+  color: var(--lcd-bright);
+  opacity: 0.5;
+}
+
+.screen-unique {
+  font-size: 0.625rem;
+  color: var(--lcd-dim);
+  text-shadow: 0 0 3px rgba(144,255,96,0.1);
+  text-align: center;
+}
+.screen-unique span {
+  color: var(--lcd-text);
+  text-shadow: 0 0 6px rgba(144,255,96,0.3);
+}
 
 .controls {
   max-width: 800px;

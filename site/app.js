@@ -191,6 +191,8 @@ async function fetchStats() {
       <span class="stat" style="color:var(--epic)"><span class="num">${data.epic || 0}</span> epic</span>
       <span class="stat"><span class="num">${data.shiny || 0}</span> shiny</span>
     `;
+    const uniqueEl = document.getElementById('unique-count');
+    if (uniqueEl) uniqueEl.textContent = data.unique_combos || 0;
   } catch (e) {}
 }
 

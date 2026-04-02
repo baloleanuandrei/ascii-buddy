@@ -29,14 +29,16 @@ function evictStaleEntries() {
 
 function isAllowedOrigin(origin, env) {
   if (!origin) return false;
-  const primary = env?.ALLOWED_ORIGIN || 'https://ascii-buddy.pages.dev';
-  if (origin === primary) return true;
-  // Allow Cloudflare Pages preview deployments (e.g. https://abc123.ascii-buddy.pages.dev)
-  try {
-    const url = new URL(primary);
-    const host = url.hostname; // ascii-buddy.pages.dev
-    return origin.endsWith('.' + host) && origin.startsWith('https://');
-  } catch { return false; }
+  const origins = (env?.ALLOWED_ORIGINS || 'https://ascii-buddy.pages.dev').split(',');
+  for (const allowed of origins) {
+    if (origin === allowed) return true;
+    // Allow Cloudflare Pages preview deployments (e.g. https://abc123.ascii-buddy.pages.dev)
+    try {
+      const host = new URL(allowed).hostname;
+      if (origin.endsWith('.' + host) && origin.startsWith('https://')) return true;
+    } catch {}
+  }
+  return false;
 }
 
 function corsHeaders(request, env) {
@@ -253,7 +255,8 @@ async function handleStats(request, env) {
       SUM(CASE WHEN rarity = 'rare' THEN 1 ELSE 0 END) as rare,
       SUM(CASE WHEN rarity = 'epic' THEN 1 ELSE 0 END) as epic,
       SUM(CASE WHEN rarity = 'legendary' THEN 1 ELSE 0 END) as legendary,
-      SUM(CASE WHEN shiny = 1 THEN 1 ELSE 0 END) as shiny
+      SUM(CASE WHEN shiny = 1 THEN 1 ELSE 0 END) as shiny,
+      COUNT(DISTINCT species || '|' || rarity || '|' || eye || '|' || hat || '|' || shiny) as unique_combos
     FROM buddies
   `).all();
 

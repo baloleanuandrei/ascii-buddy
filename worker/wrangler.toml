@@ -8,4 +8,4 @@ database_name = "buddy-db"
 database_id = "78ca63e0-78fb-4e11-a4c8-d86db75a82d8"
 
 [vars]
-ALLOWED_ORIGIN = "https://ascii-buddy.pages.dev"
+ALLOWED_ORIGINS = "https://asciibuddy.dev,https://ascii-buddy.pages.dev"

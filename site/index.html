@@ -14,16 +14,35 @@
       <div class="device-shell">
         <div class="screen-bezel">
           <div class="screen">
-            <div class="screen-title">$ ascii buddy</div>
-            <div class="screen-sub">> every companion, collected</div>
-            <div class="screen-divider"></div>
-            <div class="screen-cmd">$ npx ascii-buddy</div>
-            <div class="screen-output">
-              <div class="out-line success">Buddy card saved to: ~/ascii_buddy.svg</div>
-              <div class="out-line name">Souptuft — ★★★ RARE CHONK</div>
-              <div class="out-line">Added to the ascii buddy rolodex!</div>
-              <div class="out-line link">View it → asciibuddy.dev<span class="screen-cursor"></span></div>
+            <div class="screen-columns">
+              <div class="screen-left">
+                <div class="screen-title">$ ascii buddy</div>
+                <div class="screen-sub">> every companion, collected</div>
+                <div class="screen-divider"></div>
+                <div class="screen-cmd">$ npx ascii-buddy</div>
+                <div class="screen-output">
+                  <div class="out-line success">Buddy card saved to: ~/ascii_buddy.svg</div>
+                  <div class="out-line name">Souptuft — ★★★ RARE CHONK</div>
+                  <div class="out-line">Added to the ascii buddy rolodex!</div>
+                  <div class="out-line link">View it → asciibuddy.dev<span class="screen-cursor"></span></div>
+                </div>
+              </div>
+              <div class="screen-sep"></div>
+              <div class="screen-right">
+                <div class="screen-odds-title">drop rates</div>
+                <div class="screen-odds">
+                  <div class="screen-odds-row"><span class="screen-dot" style="background:var(--common)"></span> common <span class="screen-odds-val">60%</span> <span class="screen-odds-note">~1 in 2</span></div>
+                  <div class="screen-odds-row"><span class="screen-dot" style="background:var(--uncommon)"></span> uncommon <span class="screen-odds-val">25%</span> <span class="screen-odds-note">~1 in 4</span></div>
+                  <div class="screen-odds-row"><span class="screen-dot" style="background:var(--rare)"></span> rare <span class="screen-odds-val">10%</span> <span class="screen-odds-note">~1 in 10</span></div>
+                  <div class="screen-odds-row"><span class="screen-dot" style="background:var(--epic)"></span> epic <span class="screen-odds-val">4%</span> <span class="screen-odds-note">~1 in 25</span></div>
+                  <div class="screen-odds-row"><span class="screen-dot" style="background:var(--legendary)"></span> legendary <span class="screen-odds-val">1%</span> <span class="screen-odds-note">~1 in 100</span></div>
+                  <div class="screen-odds-row"><span class="screen-dot" style="background:var(--legendary)"></span> shiny <span class="screen-odds-val">1%</span> <span class="screen-odds-note">~1 in 100</span></div>
+                  <div class="screen-odds-row screen-odds-shiny">shiny + legendary <span class="screen-odds-val">0.01%</span> <span class="screen-odds-note">~1 in 10,000</span></div>
+                </div>
+              </div>
             </div>
+            <div class="screen-divider"></div>
+            <div class="screen-unique">3,672 unique buddies possible. found: <span id="unique-count">...</span></div>
           </div>
         </div>
         <div class="device-controls">
