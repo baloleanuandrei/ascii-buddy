@@ -46,20 +46,11 @@ export async function runBattle(env) {
   const dateStr = now.toISOString().slice(0, 10);
   const hour = now.getUTCHours();
 
-  // Determine which round this is
-  let roundLabel = null;
-  for (const [h, label] of Object.entries(ROUND_HOURS)) {
-    if (hour >= parseInt(h) && (roundLabel === null || parseInt(h) > parseInt(Object.entries(ROUND_HOURS).find(([, l]) => l === roundLabel)?.[0] || -1))) {
-      roundLabel = label;
-    }
-  }
-  if (!roundLabel) roundLabel = 'R1';
+  // Pick the latest round whose start hour has passed.
+  const sorted = [[0, 'R1'], [8, 'R2'], [16, 'R3']];
+  const roundLabel = sorted.filter(([h]) => hour >= h).at(-1)?.[1] ?? 'R1';
 
   const roundName = `${dateStr}-${roundLabel}`;
-
-  // Guard double-execution
-  const existing = await env.DB.prepare('SELECT id FROM battles WHERE round_name = ?').bind(roundName).first();
-  if (existing) return;
 
   // Pick trump stat
   const trumpStat = STATS[Math.floor(Math.random() * STATS.length)];
@@ -143,7 +134,13 @@ export async function runBattle(env) {
     }
   }
 
-  await env.DB.batch(stmts);
+  try {
+    await env.DB.batch(stmts);
+  } catch (e) {
+    // Double-fire: round already exists. UNIQUE(round_name) protects us.
+    if (e?.message?.includes('UNIQUE constraint')) return;
+    throw e;
+  }
 }
 
 // --- API Handlers ---

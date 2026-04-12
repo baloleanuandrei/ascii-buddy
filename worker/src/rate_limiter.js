@@ -7,10 +7,21 @@ const TIERS = [
   { max: 1, window: 300_000, cooldown: 60 * 60_000 },
 ];
 
+const MAX_ENTRIES = 10_000;
+const ALARM_INTERVAL_MS = 5 * 60_000;
+
 export class RateLimiter {
   constructor(state) {
     this.state = state;
-    this.map = new Map();
+    this.map = null;
+    this.state.blockConcurrencyWhile(async () => {
+      const stored = (await this.state.storage.get('map')) || {};
+      this.map = new Map(Object.entries(stored));
+      const alarm = await this.state.storage.getAlarm();
+      if (alarm == null) {
+        await this.state.storage.setAlarm(Date.now() + ALARM_INTERVAL_MS);
+      }
+    });
   }
 
   async fetch(request) {
@@ -19,17 +30,30 @@ export class RateLimiter {
     const now = Date.now();
     const limited = this.check(ip, now);
     this.evict(now);
+    await this.persist();
     return new Response(JSON.stringify({ limited }), {
       headers: { 'Content-Type': 'application/json' },
     });
   }
 
+  async alarm() {
+    this.evict(Date.now());
+    await this.persist();
+    await this.state.storage.setAlarm(Date.now() + ALARM_INTERVAL_MS);
+  }
+
+  async persist() {
+    await this.state.storage.put('map', Object.fromEntries(this.map));
+  }
+
   check(ip, now) {
     let entry = this.map.get(ip);
     if (!entry) {
-      this.map.set(ip, { tier: 0, tierStart: now, windowStart: now, count: 1, escalated: false });
+      if (this.map.size >= MAX_ENTRIES) this.dropOldest();
+      this.map.set(ip, { tier: 0, tierStart: now, windowStart: now, count: 1, escalated: false, lastSeen: now });
       return false;
     }
+    entry.lastSeen = now;
 
     const tierConfig = TIERS[entry.tier];
 
@@ -72,5 +96,18 @@ export class RateLimiter {
       const maxAge = Math.max(tier.cooldown, tier.window) + 60_000;
       if (now - entry.tierStart > maxAge) this.map.delete(ip);
     }
+  }
+
+  dropOldest() {
+    let oldestIp = null;
+    let oldestSeen = Infinity;
+    for (const [ip, entry] of this.map) {
+      const seen = entry.lastSeen ?? entry.tierStart ?? 0;
+      if (seen < oldestSeen) {
+        oldestSeen = seen;
+        oldestIp = ip;
+      }
+    }
+    if (oldestIp != null) this.map.delete(oldestIp);
   }
 }

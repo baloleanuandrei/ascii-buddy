@@ -22,6 +22,10 @@ async function isPostRateLimited(ip, env) {
   }
 }
 
+// Per-isolate GET cap. Cloudflare runs many isolates per colo and many colos,
+// so the effective global rate is ~30 × (isolates × colos). Acceptable because
+// GETs are non-mutating and D1 is backed by read replicas; a true global limit
+// would require a DO round-trip on every hot read.
 function isGetRateLimited(ip) {
   const now = Date.now();
   const entry = getRateMap.get(ip);
@@ -30,7 +34,7 @@ function isGetRateLimited(ip) {
     return false;
   }
   entry.count++;
-  return entry.count > 60;
+  return entry.count > 30;
 }
 
 function evictStaleGetEntries() {
@@ -81,10 +85,46 @@ async function sha256Hex(s) {
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+async function hmacHex(key, msg) {
+  const k = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(key),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg));
+  return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 function extractBearer(request) {
   const raw = request.headers.get('Authorization') || '';
-  const m = /^Bearer\s+([A-Za-z0-9._-]{16,256})$/.exec(raw);
+  const m = /^Bearer\s+([a-f0-9]{64})$/.exec(raw);
   return m ? m[1] : null;
+}
+
+async function deriveUserHashV2(token) {
+  return 'u_' + (await sha256Hex('v2:' + token)).slice(0, 24);
+}
+
+// Server-assigned buddy_id: 8 chars in XXXX-YYYY form (Crockford base32, minus
+// confusables). Client no longer picks this.
+const BUDDY_ID_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+function generateBuddyId() {
+  const bytes = new Uint8Array(5);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (let i = 0; i < 8; i++) {
+    // Pack 5 bytes (40 bits) into 8 x 5-bit groups.
+    const bitOffset = i * 5;
+    const byteIdx = bitOffset >> 3;
+    const bitIdx = bitOffset & 7;
+    const hi = bytes[byteIdx] ?? 0;
+    const lo = bytes[byteIdx + 1] ?? 0;
+    const val = ((hi << 8) | lo) >> (11 - bitIdx) & 0x1f;
+    out += BUDDY_ID_ALPHABET[val];
+  }
+  return out.slice(0, 4) + '-' + out.slice(4);
 }
 
 function safeParseStats(s) {
@@ -107,7 +147,7 @@ const VALID_EYES = new Set(['·', '✦', '×', '◉', '@', '°']);
 const VALID_HATS = new Set(['none', 'crown', 'tophat', 'propeller', 'halo', 'wizard', 'beanie', 'tinyduck']);
 const VALID_STATS = new Set(['DEBUGGING', 'PATIENCE', 'CHAOS', 'WISDOM', 'SNARK']);
 
-// Public columns — never include user_hash or auth_token_hash.
+// Public columns — never include user_hash or auth_token_hmac.
 const BUDDY_PUBLIC_COLS = 'buddy_id, name, personality, species, rarity, eye, hat, shiny, stats, hatched_at, submitted_at';
 
 // --- Content filter ---
@@ -164,8 +204,8 @@ function containsBlockedContent(text) {
 
 function validateBuddy(body) {
   if (!body || typeof body !== 'object') return 'invalid body';
-  if (!body.buddy_id || typeof body.buddy_id !== 'string') return 'missing buddy_id';
   if (!body.user_hash || typeof body.user_hash !== 'string') return 'missing user_hash';
+  if (!/^u_[a-f0-9]{24}$/.test(body.user_hash)) return 'invalid user_hash format';
   if (!body.name || typeof body.name !== 'string') return 'missing name';
   if (!body.species || typeof body.species !== 'string') return 'missing species';
   if (!body.rarity || typeof body.rarity !== 'string') return 'missing rarity';
@@ -173,8 +213,6 @@ function validateBuddy(body) {
   if (!body.hat || typeof body.hat !== 'string') return 'missing hat';
   if (!body.stats || typeof body.stats !== 'object') return 'missing stats';
 
-  if (body.buddy_id.length > 20) return 'buddy_id too long';
-  if (body.user_hash.length > 64) return 'user_hash too long';
   if (body.name.length > 100) return 'name too long';
   if (body.personality && body.personality.length > 500) return 'personality too long';
 
@@ -216,73 +254,101 @@ async function handleSubmit(request, env) {
   const err = validateBuddy(body);
   if (err) return json({ error: err }, 400, env, request);
 
-  const { buddy_id, user_hash, name, personality, species, rarity, eye, hat, shiny, stats, hatched_at } = body;
-  const tokenHash = await sha256Hex(token);
+  if (!env.AUTH_PEPPER) {
+    console.error('AUTH_PEPPER secret is not set — refusing to accept submits');
+    return json({ error: 'server misconfigured' }, 500, env, request);
+  }
+
+  const { user_hash, name, personality, species, rarity, eye, hat, shiny, stats, hatched_at } = body;
+
+  // Proof-of-knowledge: user_hash must be derivable from the bearer token.
+  // This is the core defense against squatting and UUID-based impersonation.
+  const expected = await deriveUserHashV2(token);
+  if (expected !== user_hash) {
+    return json({ error: 'user_hash does not match bearer' }, 401, env, request);
+  }
+
+  const tokenMac = await hmacHex(env.AUTH_PEPPER, token);
 
   const existing = await env.DB.prepare(
-    'SELECT auth_token_hash FROM buddies WHERE user_hash = ?'
+    'SELECT buddy_id, auth_token_hmac FROM buddies WHERE user_hash = ?'
   ).bind(user_hash).first();
 
-  if (existing && existing.auth_token_hash && existing.auth_token_hash !== tokenHash) {
+  // Defense in depth: the identity check above should already guarantee this.
+  if (existing && existing.auth_token_hmac && existing.auth_token_hmac !== tokenMac) {
     return json({ error: 'forbidden' }, 403, env, request);
   }
 
   if (!existing) {
-    try {
-      await env.DB.prepare(`
-        INSERT INTO buddies (buddy_id, user_hash, name, personality, species, rarity, eye, hat, shiny, stats, hatched_at, auth_token_hash)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        buddy_id,
-        user_hash,
-        name.slice(0, 100),
-        personality ? personality.slice(0, 500) : null,
-        species,
-        rarity,
-        eye,
-        hat,
-        shiny ? 1 : 0,
-        JSON.stringify(stats),
-        hatched_at || null,
-        tokenHash,
-      ).run();
-    } catch {
-      // Unique-conflict race on buddy_id — treat as forbidden.
+    let buddy_id = null;
+    let lastErr = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const candidate = generateBuddyId();
+      try {
+        await env.DB.prepare(`
+          INSERT INTO buddies (buddy_id, user_hash, name, personality, species, rarity, eye, hat, shiny, stats, hatched_at, auth_token_hmac)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          candidate,
+          user_hash,
+          name.slice(0, 100),
+          personality ? personality.slice(0, 500) : null,
+          species,
+          rarity,
+          eye,
+          hat,
+          shiny ? 1 : 0,
+          JSON.stringify(stats),
+          hatched_at || null,
+          tokenMac,
+        ).run();
+        buddy_id = candidate;
+        break;
+      } catch (e) {
+        lastErr = e;
+        if (!e?.message?.includes('UNIQUE constraint')) {
+          console.error('handleSubmit insert error', e);
+          return json({ error: 'internal error' }, 500, env, request);
+        }
+        // Retry on collision.
+      }
+    }
+    if (!buddy_id) {
+      console.error('handleSubmit: failed to assign buddy_id after retries', lastErr);
       return json({ error: 'conflict' }, 409, env, request);
     }
-  } else {
-    await env.DB.prepare(`
-      UPDATE buddies SET
-        buddy_id = ?,
-        name = ?,
-        personality = ?,
-        species = ?,
-        rarity = ?,
-        eye = ?,
-        hat = ?,
-        shiny = ?,
-        stats = ?,
-        hatched_at = ?,
-        auth_token_hash = ?,
-        submitted_at = datetime('now')
-      WHERE user_hash = ?
-    `).bind(
-      buddy_id,
-      name.slice(0, 100),
-      personality ? personality.slice(0, 500) : null,
-      species,
-      rarity,
-      eye,
-      hat,
-      shiny ? 1 : 0,
-      JSON.stringify(stats),
-      hatched_at || null,
-      tokenHash,
-      user_hash,
-    ).run();
+    return json({ ok: true, buddy_id }, 200, env, request);
   }
 
-  return json({ ok: true, buddy_id }, 200, env, request);
+  await env.DB.prepare(`
+    UPDATE buddies SET
+      name = ?,
+      personality = ?,
+      species = ?,
+      rarity = ?,
+      eye = ?,
+      hat = ?,
+      shiny = ?,
+      stats = ?,
+      hatched_at = ?,
+      auth_token_hmac = ?,
+      submitted_at = datetime('now')
+    WHERE user_hash = ?
+  `).bind(
+    name.slice(0, 100),
+    personality ? personality.slice(0, 500) : null,
+    species,
+    rarity,
+    eye,
+    hat,
+    shiny ? 1 : 0,
+    JSON.stringify(stats),
+    hatched_at || null,
+    tokenMac,
+    user_hash,
+  ).run();
+
+  return json({ ok: true, buddy_id: existing.buddy_id }, 200, env, request);
 }
 
 async function handleList(request, env) {
@@ -349,10 +415,11 @@ async function handleSearch(request, env) {
   if (!q) return json({ buddies: [] }, 200, env, request);
 
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '20') || 20, 50);
-  const pattern = `%${q}%`;
+  const escLike = s => s.replace(/[\\%_]/g, c => '\\' + c);
+  const pattern = `%${escLike(q)}%`;
 
   const { results } = await env.DB.prepare(
-    `SELECT ${BUDDY_PUBLIC_COLS} FROM buddies WHERE name LIKE ? OR buddy_id LIKE ? ORDER BY submitted_at DESC LIMIT ?`
+    `SELECT ${BUDDY_PUBLIC_COLS} FROM buddies WHERE name LIKE ? ESCAPE '\\' OR buddy_id LIKE ? ESCAPE '\\' ORDER BY submitted_at DESC LIMIT ?`
   ).bind(pattern, pattern, limit).all();
 
   const buddies = results.map(b => ({
@@ -404,11 +471,9 @@ export default {
         return json({ error: 'rate limit exceeded' }, 429, env, request);
       }
     } else {
-      if (isGetRateLimited(ip)) {
-        evictStaleGetEntries();
-        return json({ error: 'rate limit exceeded' }, 429, env, request);
-      }
+      const limited = isGetRateLimited(ip);
       evictStaleGetEntries();
+      if (limited) return json({ error: 'rate limit exceeded' }, 429, env, request);
     }
 
     const url = new URL(request.url);

@@ -143,15 +143,15 @@ function pick(rng, arr) {
   return arr[Math.floor(rng() * arr.length)];
 }
 
-function generateBuddy(claudeJson) {
-  const companion = claudeJson.companion;
+function generateBuddy(companion, secret) {
   if (!companion) {
     console.error('No companion found in ~/.claude.json. Run /buddy in Claude Code first.');
     process.exit(1);
   }
 
-  const userId = claudeJson.oauthAccount?.accountUuid ?? claudeJson.userID ?? 'anon';
-  const key = userId + SALT;
+  // Seed the cosmetic RNG from the sidecar secret. Buddy identity is now tied
+  // to the ascii-buddy sidecar, not the Claude account UUID.
+  const key = secret + SALT;
   const hash = computeHash(key);
   const rng = mulberry32(hash);
 
@@ -300,54 +300,93 @@ function generateSVG(buddy) {
 // --- Rolodex submission ---
 //
 // WHAT THIS SENDS to the rolodex API (buddy-api.hello-7b8.workers.dev):
-//   - buddy_id       → deterministic ID derived from your user_hash + species + rarity
-//   - user_hash      → SHA-256 of "ascii-buddy:user:" + your account UUID (NOT the UUID itself)
-//   - Authorization  → "Bearer <token>" where token is SHA-256 of "ascii-buddy:auth:" + UUID.
-//                      The server only stores SHA-256(token). Neither the UUID nor the token
-//                      can be reversed back to your account. Domain separation means leaking
-//                      user_hash never reveals the auth token.
+//   - user_hash      → "u_" + first 24 hex chars of SHA-256("v2:" + secret)
+//   - Authorization  → "Bearer <secret>" (64-hex random per-user secret from
+//                      the ascii-buddy sidecar). The server verifies that
+//                      user_hash is derivable from the bearer, and stores an
+//                      HMAC of the token under a server-side pepper.
 //   - name, personality, species, rarity, eye, hat, shiny, stats, hatched_at
 //
+// The server assigns `buddy_id` and returns it; we cache it in the sidecar.
+//
 // WHAT THIS DOES NOT SEND:
-//   - Your account UUID, email, API keys, or any real auth tokens
+//   - Your Claude account UUID, email, API keys, or any real auth tokens
 //   - Any data from your conversations or Claude Code usage
-//   - Any system information (Cloudflare sees your IP as with any HTTP request)
 //
 // The API is a Cloudflare Worker that stores buddy data in a D1 database.
 // Source code: https://github.com/baloleanuandrei/ascii-buddy
 
 const API_URL = process.env.BUDDY_API || 'https://buddy-api.hello-7b8.workers.dev';
 
+// Refuse plaintext HTTP except for local dev loopback. Bearer token must not
+// cross the wire in cleartext to anywhere else.
+(function validateApiUrl() {
+  const ok = /^https:\/\//.test(API_URL)
+    || /^http:\/\/localhost(:\d+)?(\/|$)/.test(API_URL)
+    || /^http:\/\/127\.0\.0\.1(:\d+)?(\/|$)/.test(API_URL);
+  if (!ok) {
+    console.error(`  BUDDY_API must be https:// (or http://localhost for dev). Got: ${API_URL}`);
+    process.exit(1);
+  }
+})();
+
 function sha256Hex(str) {
   return crypto.createHash('sha256').update(str).digest('hex');
 }
 
-function deriveUserHash(userId) {
-  // Domain-separated SHA-256, truncated to 24 hex chars (96 bits) for a short public key.
-  return 'u_' + sha256Hex('ascii-buddy:user:' + userId).slice(0, 24);
+function deriveUserHashV2(secret) {
+  return 'u_' + sha256Hex('v2:' + secret).slice(0, 24);
 }
 
-function deriveAuthToken(userId) {
-  // Domain-separated full SHA-256 (64 hex chars). Sent via Authorization header only.
-  return sha256Hex('ascii-buddy:auth:' + userId);
+// --- Sidecar secret ---
+//
+// A 64-hex random secret is generated on first run and stored at:
+//   macOS/Linux: ~/.config/ascii-buddy/secret   (mode 0600)
+//   Windows:     %APPDATA%\ascii-buddy\secret
+//
+// This secret is the sole source of your buddy identity. It is NOT derived
+// from your Claude account — losing it means losing access to your buddy row.
+function getSidecarPath() {
+  if (process.platform === 'win32') {
+    const base = process.env.APPDATA || os.homedir();
+    return path.join(base, 'ascii-buddy', 'secret');
+  }
+  return path.join(os.homedir(), '.config', 'ascii-buddy', 'secret');
 }
 
-function generateBuddyId(userHash, species, rarity) {
-  // Deterministic 8-char ID. SHA-256 of (user_hash, species, rarity) keeps collisions
-  // cryptographically unlikely instead of the old 32-bit hash.
-  const digest = sha256Hex(`${userHash}:${species}:${rarity}`);
-  const part1 = parseInt(digest.slice(0, 8), 16).toString(36).slice(0, 4).toUpperCase().padStart(4, '0');
-  const part2 = parseInt(digest.slice(8, 16), 16).toString(36).slice(0, 4).toUpperCase().padStart(4, '0');
-  return `${part1}-${part2}`;
+function loadOrCreateSecret() {
+  const file = getSidecarPath();
+  const dir = path.dirname(file);
+
+  if (fs.existsSync(file)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(file, 'utf-8'));
+      if (parsed && parsed.version === 2 && typeof parsed.secret === 'string' && /^[a-f0-9]{64}$/.test(parsed.secret)) {
+        return { file, data: parsed };
+      }
+      // Corrupt / wrong shape: back up and regenerate.
+      fs.renameSync(file, file + '.bak.' + Date.now());
+    } catch {
+      try { fs.renameSync(file, file + '.bak.' + Date.now()); } catch {}
+    }
+  }
+
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const data = { version: 2, secret: crypto.randomBytes(32).toString('hex') };
+  fs.writeFileSync(file, JSON.stringify(data, null, 2), { mode: 0o600 });
+  return { file, data };
 }
 
-async function submitToRolodex(buddy, userId) {
-  const userHash = deriveUserHash(userId);
-  const authToken = deriveAuthToken(userId);
-  const buddyId = generateBuddyId(userHash, buddy.species, buddy.rarity);
+function saveBuddyId(sidecar, buddyId) {
+  sidecar.data.buddy_id = buddyId;
+  fs.writeFileSync(sidecar.file, JSON.stringify(sidecar.data, null, 2), { mode: 0o600 });
+}
+
+async function submitToRolodex(buddy, sidecar) {
+  const secret = sidecar.data.secret;
+  const userHash = deriveUserHashV2(secret);
 
   const payload = {
-    buddy_id: buddyId,
     user_hash: userHash,
     name: buddy.name,
     personality: buddy.personality || null,
@@ -374,7 +413,7 @@ async function submitToRolodex(buddy, userId) {
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(data),
-          'Authorization': 'Bearer ' + authToken,
+          'Authorization': 'Bearer ' + secret,
         },
         timeout: 5000,
       }, (res) => {
@@ -407,13 +446,13 @@ async function submitToRolodex(buddy, userId) {
 //   - companion.name        → your buddy's display name (set by you via /buddy)
 //   - companion.personality → your buddy's personality text (set by you via /buddy)
 //   - companion.hatchedAt   → when you created your buddy
-//   - oauthAccount.accountUuid OR userID → used ONLY to generate a deterministic
-//     seed for your buddy's species/rarity/stats. This is NEVER sent to the server
-//     directly — it's hashed (SHA-256, domain-separated) into a one-way public
-//     user_hash and an auth token — see deriveUserHash / deriveAuthToken above.
 //
-// We do NOT read or send: email, API keys, auth tokens, conversation history,
-// or any other sensitive data from your Claude Code config.
+// We do NOT read your account UUID, email, API keys, auth tokens, conversation
+// history, or any other sensitive data from your Claude Code config.
+//
+// Separately, we read / create a per-user secret at ~/.config/ascii-buddy/secret
+// (%APPDATA%\ascii-buddy\secret on Windows). That secret is the sole source of
+// your buddy identity — see the loadOrCreateSecret / submitToRolodex helpers.
 
 const claudeJsonPath = path.join(os.homedir(), '.claude.json');
 if (!fs.existsSync(claudeJsonPath)) {
@@ -433,8 +472,12 @@ if (!claudeJson.companion) {
   process.exit(1);
 }
 
+// Load or create the sidecar secret before generating the buddy — the
+// cosmetic RNG is seeded from it.
+const sidecar = loadOrCreateSecret();
+
 // Generate buddy from real data
-const buddy = generateBuddy(claudeJson);
+const buddy = generateBuddy(claudeJson.companion, sidecar.data.secret);
 const svg = generateSVG(buddy);
 fs.writeFileSync(OUTPUT_PATH, svg);
 
@@ -446,14 +489,14 @@ console.log(`  Stats: ${STAT_NAMES.map(s => `${s}:${buddy.stats[s]}`).join('  ')
 if (buddy.personality) console.log(`  "${buddy.personality.substring(0, 60)}..."`);
 
 // Submit to rolodex
-const userId = claudeJson.oauthAccount?.accountUuid ?? claudeJson.userID ?? 'anon';
-submitToRolodex(buddy, userId).then(result => {
+submitToRolodex(buddy, sidecar).then(result => {
   if (result && result.buddy_id) {
+    saveBuddyId(sidecar, result.buddy_id);
     console.log(`  \uD83C\uDF10 Added to the ascii buddy rolodex!`);
     console.log(`  Your buddy ID: ${result.buddy_id}`);
     console.log(`  View it → https://asciibuddy.dev/#${result.buddy_id}`);
   } else if (result && result.__authError) {
-    console.log('  (this buddy slot already belongs to another account — buddy saved locally only)');
+    console.log('  (auth failed — your sidecar secret may be out of sync with the server)');
   } else {
     console.log('  (could not reach rolodex — buddy saved locally only)');
   }

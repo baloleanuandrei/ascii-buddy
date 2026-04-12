@@ -17,6 +17,10 @@ function escapeHtml(s) {
   return div.innerHTML;
 }
 
+function clampStat(v) {
+  return Math.max(0, Math.min(100, Number(v) || 0));
+}
+
 // --- Countdown Timer ---
 function updateCountdown() {
   const now = new Date();
@@ -134,7 +138,7 @@ async function showProfile(buddyId) {
 
     const statNames = ['DEBUGGING', 'PATIENCE', 'CHAOS', 'WISDOM', 'SNARK'];
     const statsHtml = statNames.map(s => {
-      const val = b.stats[s] || 0;
+      const val = clampStat(b.stats[s]);
       return `<div class="prof-stat">
         <span class="prof-stat-label">${s}</span>
         <div class="prof-stat-bar"><div class="prof-stat-fill" style="width:${val}%;background:${color}"></div></div>

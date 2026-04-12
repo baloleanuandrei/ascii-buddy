@@ -1,6 +1,6 @@
 {
   "name": "ascii-buddy",
-  "version": "1.0.8",
+  "version": "2.0.0",
   "description": "Generate and share your ASCII buddy companion card from Claude Code",
   "bin": {
     "ascii-buddy": "bin/cli.js"
