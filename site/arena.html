@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCII Buddy — Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="arena.css">
+</head>
+<body>
+
+  <div class="arena-header">
+    <div class="arena-device">
+      <div class="arena-shell">
+        <div class="arena-screen">
+          <div class="arena-title">ARENA</div>
+          <div class="arena-subtitle">trump-card battles — 3 rounds daily at 00:00, 08:00, 16:00 UTC</div>
+          <div class="arena-countdown">
+            <span class="countdown-label">NEXT BATTLE:</span>
+            <span class="countdown-time" id="countdown">--:--:--</span>
+          </div>
+        </div>
+        <div class="arena-controls">
+          <div class="arena-ctrl-spacer"></div>
+          <a href="index.html" class="device-nav-btn">GALLERY</a>
+          <div class="arena-ctrl-spacer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">LEADERBOARD</div>
+  <div class="sort-controls">
+    <button class="sort-btn active" data-sort="wins">WINS</button>
+    <button class="sort-btn" data-sort="winrate">WIN RATE</button>
+    <button class="sort-btn" data-sort="streak">STREAK</button>
+  </div>
+  <div id="leaderboard" class="leaderboard">
+    <div class="arena-loading">loading leaderboard...</div>
+  </div>
+
+  <div class="section-title">RECENT BATTLES</div>
+  <div id="battles" class="battles-list">
+    <div class="arena-loading">loading battles...</div>
+  </div>
+
+  <!-- Profile overlay -->
+  <div id="profile-overlay" class="profile-overlay" hidden>
+    <div class="profile-modal">
+      <button class="profile-close" id="profile-close-btn">&times;</button>
+      <div id="profile-content"></div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:40px 0"></div>
+
+  <script src="config.js"></script>
+  <script src="arena.js"></script>
+</body>
+</html>

@@ -9,3 +9,16 @@ database_id = "78ca63e0-78fb-4e11-a4c8-d86db75a82d8"
 
 [vars]
 ALLOWED_ORIGINS = "https://asciibuddy.dev,https://ascii-buddy.pages.dev"
+
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiter"]
+
+# --- [ARENA] battle cron triggers ---
+[triggers]
+crons = ["0 0 * * *", "0 8 * * *", "0 16 * * *"]
+# --- [/ARENA] ---

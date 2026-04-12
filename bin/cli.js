@@ -4,6 +4,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 
 const OUTPUT_PATH = path.join(os.homedir(), 'ascii_buddy.svg');
 
@@ -299,51 +300,50 @@ function generateSVG(buddy) {
 // --- Rolodex submission ---
 //
 // WHAT THIS SENDS to the rolodex API (buddy-api.hello-7b8.workers.dev):
-//   - buddy_id     → deterministic ID derived from your hashed user ID + species + rarity
-//   - user_hash    → one-way hash of your account UUID (NOT the raw UUID itself)
-//   - name         → your buddy's name (set by you)
-//   - personality   → your buddy's personality text (set by you)
-//   - species, rarity, eye, hat, shiny, stats → generated buddy attributes
-//   - hatched_at   → when you created your buddy
+//   - buddy_id       → deterministic ID derived from your user_hash + species + rarity
+//   - user_hash      → SHA-256 of "ascii-buddy:user:" + your account UUID (NOT the UUID itself)
+//   - Authorization  → "Bearer <token>" where token is SHA-256 of "ascii-buddy:auth:" + UUID.
+//                      The server only stores SHA-256(token). Neither the UUID nor the token
+//                      can be reversed back to your account. Domain separation means leaking
+//                      user_hash never reveals the auth token.
+//   - name, personality, species, rarity, eye, hat, shiny, stats, hatched_at
 //
 // WHAT THIS DOES NOT SEND:
-//   - Your account UUID, email, API keys, or any auth tokens
+//   - Your account UUID, email, API keys, or any real auth tokens
 //   - Any data from your conversations or Claude Code usage
-//   - Any system information (OS, IP is seen by Cloudflare as with any HTTP request)
+//   - Any system information (Cloudflare sees your IP as with any HTTP request)
 //
 // The API is a Cloudflare Worker that stores buddy data in a D1 database.
 // Source code: https://github.com/baloleanuandrei/ascii-buddy
 
 const API_URL = process.env.BUDDY_API || 'https://buddy-api.hello-7b8.workers.dev';
 
-function hashForPrivacy(str) {
-  // Simple hash so we don't send raw user IDs
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
-  }
-  return 'u_' + (h >>> 0).toString(36);
+function sha256Hex(str) {
+  return crypto.createHash('sha256').update(str).digest('hex');
+}
+
+function deriveUserHash(userId) {
+  // Domain-separated SHA-256, truncated to 24 hex chars (96 bits) for a short public key.
+  return 'u_' + sha256Hex('ascii-buddy:user:' + userId).slice(0, 24);
+}
+
+function deriveAuthToken(userId) {
+  // Domain-separated full SHA-256 (64 hex chars). Sent via Authorization header only.
+  return sha256Hex('ascii-buddy:auth:' + userId);
 }
 
 function generateBuddyId(userHash, species, rarity) {
-  // Deterministic short ID: hash the combo, encode as base36, take 8 chars
-  const raw = `${userHash}:${species}:${rarity}`;
-  let h1 = 0x811c9dc5;
-  let h2 = 0x1234abcd;
-  for (let i = 0; i < raw.length; i++) {
-    h1 ^= raw.charCodeAt(i);
-    h1 = Math.imul(h1, 16777619);
-    h2 ^= raw.charCodeAt(i);
-    h2 = Math.imul(h2, 0x5bd1e995);
-  }
-  // Combine into 8-char alphanumeric ID
-  const part1 = (h1 >>> 0).toString(36).slice(0, 4).toUpperCase();
-  const part2 = (h2 >>> 0).toString(36).slice(0, 4).toUpperCase();
+  // Deterministic 8-char ID. SHA-256 of (user_hash, species, rarity) keeps collisions
+  // cryptographically unlikely instead of the old 32-bit hash.
+  const digest = sha256Hex(`${userHash}:${species}:${rarity}`);
+  const part1 = parseInt(digest.slice(0, 8), 16).toString(36).slice(0, 4).toUpperCase().padStart(4, '0');
+  const part2 = parseInt(digest.slice(8, 16), 16).toString(36).slice(0, 4).toUpperCase().padStart(4, '0');
   return `${part1}-${part2}`;
 }
 
 async function submitToRolodex(buddy, userId) {
-  const userHash = hashForPrivacy(userId);
+  const userHash = deriveUserHash(userId);
+  const authToken = deriveAuthToken(userId);
   const buddyId = generateBuddyId(userHash, buddy.species, buddy.rarity);
 
   const payload = {
@@ -371,15 +371,22 @@ async function submitToRolodex(buddy, userId) {
         port: url.port || (url.protocol === 'https:' ? 443 : 80),
         path: url.pathname,
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) },
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(data),
+          'Authorization': 'Bearer ' + authToken,
+        },
         timeout: 5000,
       }, (res) => {
         let body = '';
         res.on('data', c => body += c);
         res.on('end', () => {
+          const status = res.statusCode;
           try {
             const parsed = JSON.parse(body);
-            resolve(res.statusCode === 200 ? parsed : false);
+            if (status === 200) resolve(parsed);
+            else if (status === 401 || status === 403) resolve({ __authError: true, status });
+            else resolve(false);
           } catch { resolve(false); }
         });
       });
@@ -402,7 +409,8 @@ async function submitToRolodex(buddy, userId) {
 //   - companion.hatchedAt   → when you created your buddy
 //   - oauthAccount.accountUuid OR userID → used ONLY to generate a deterministic
 //     seed for your buddy's species/rarity/stats. This is NEVER sent to the server
-//     directly — it's hashed into a one-way privacy-safe token (see hashForPrivacy).
+//     directly — it's hashed (SHA-256, domain-separated) into a one-way public
+//     user_hash and an auth token — see deriveUserHash / deriveAuthToken above.
 //
 // We do NOT read or send: email, API keys, auth tokens, conversation history,
 // or any other sensitive data from your Claude Code config.
@@ -444,6 +452,8 @@ submitToRolodex(buddy, userId).then(result => {
     console.log(`  \uD83C\uDF10 Added to the ascii buddy rolodex!`);
     console.log(`  Your buddy ID: ${result.buddy_id}`);
     console.log(`  View it → https://asciibuddy.dev/#${result.buddy_id}`);
+  } else if (result && result.__authError) {
+    console.log('  (this buddy slot already belongs to another account — buddy saved locally only)');
   } else {
     console.log('  (could not reach rolodex — buddy saved locally only)');
   }
