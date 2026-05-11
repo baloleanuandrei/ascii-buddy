@@ -1,0 +1,15 @@
+"""Branded spinner (context manager)."""
+from contextlib import contextmanager
+from rich.console import Console
+from rich.spinner import Spinner
+from rich.live import Live
+from .theme import theme
+
+_console = Console()
+
+
+@contextmanager
+def spinner(text: str):
+    s = Spinner("dots", text=f"[{theme['primary_color']}]{text}[/]")
+    with Live(s, console=_console, refresh_per_second=12, transient=True):
+        yield

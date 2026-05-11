@@ -1,0 +1,29 @@
+import React from "react";
+import { Box, Text } from "ink";
+import { theme } from "../theme.js";
+
+const COLORS = {
+  success: "#22c55e",
+  error: "#ef4444",
+  warning: "#f59e0b",
+  info: theme.primaryColor,
+} as const;
+
+interface Props {
+  level: keyof typeof COLORS;
+  children: React.ReactNode;
+}
+
+export function Message({ level, children }: Props): React.ReactElement {
+  return (
+    <Box>
+      <Text color={COLORS[level]}>{theme.symbols[level]} </Text>
+      <Text>{children}</Text>
+    </Box>
+  );
+}
+
+export const Success = (p: { children: React.ReactNode }) => <Message level="success">{p.children}</Message>;
+export const ErrorMsg = (p: { children: React.ReactNode }) => <Message level="error">{p.children}</Message>;
+export const Warning = (p: { children: React.ReactNode }) => <Message level="warning">{p.children}</Message>;
+export const Info = (p: { children: React.ReactNode }) => <Message level="info">{p.children}</Message>;

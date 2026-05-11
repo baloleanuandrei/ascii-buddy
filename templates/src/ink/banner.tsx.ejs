@@ -1,0 +1,14 @@
+import React from "react";
+import { Box, Text } from "ink";
+import { theme } from "../theme.js";
+
+const ART = `<%- bannerArt.replace(/`/g, '\\`') %>`;
+
+export function Banner(): React.ReactElement {
+  return (
+    <Box flexDirection="column" marginBottom={1}>
+      <Text color={theme.primaryColor}>{ART}</Text>
+      {theme.tagline ? <Text dimColor>{theme.tagline}</Text> : null}
+    </Box>
+  );
+}

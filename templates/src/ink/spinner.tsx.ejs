@@ -1,0 +1,17 @@
+import React, { useEffect, useState } from "react";
+import { Box, Text } from "ink";
+import { theme } from "../theme.js";
+
+export function Spinner({ label }: { label: string }): React.ReactElement {
+  const [frame, setFrame] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setFrame((f) => (f + 1) % theme.spinnerFrames.length), theme.spinnerInterval);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <Box>
+      <Text color={theme.primaryColor}>{theme.spinnerFrames[frame]} </Text>
+      <Text>{label}</Text>
+    </Box>
+  );
+}

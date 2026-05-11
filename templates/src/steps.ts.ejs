@@ -1,0 +1,16 @@
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+export function steps(labels: string[], current: number): void {
+  const c = chalk.hex(theme.primaryColor);
+  const done = chalk.hex("#22c55e");
+  const out: string[] = [];
+  labels.forEach((label, i) => {
+    const n = i + 1;
+    if (i < current) out.push(done(`(${theme.symbols.success}) ${label}`));
+    else if (i === current) out.push(c.bold(`(${n}) ${label}`));
+    else out.push(chalk.dim(`(${n}) ${label}`));
+    if (i < labels.length - 1) out.push(chalk.dim(" ── "));
+  });
+  process.stdout.write(out.join("") + "\n");
+}

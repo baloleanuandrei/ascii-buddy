@@ -1,0 +1,29 @@
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+function renderValue(v: unknown, indent: number): string {
+  const pad = "  ".repeat(indent);
+  if (v === null) return chalk.dim("null");
+  if (v === undefined) return chalk.dim("undefined");
+  if (typeof v === "boolean") return chalk.hex("#f59e0b")(String(v));
+  if (typeof v === "number") return chalk.hex(theme.primaryColor)(String(v));
+  if (typeof v === "string") return chalk.hex("#22c55e")(JSON.stringify(v));
+  if (Array.isArray(v)) {
+    if (v.length === 0) return chalk.dim("[]");
+    const inner = v.map((x) => pad + "  " + renderValue(x, indent + 1)).join(",\n");
+    return chalk.dim("[") + "\n" + inner + "\n" + pad + chalk.dim("]");
+  }
+  if (typeof v === "object") {
+    const entries = Object.entries(v as Record<string, unknown>);
+    if (entries.length === 0) return chalk.dim("{}");
+    const inner = entries
+      .map(([k, val]) => pad + "  " + chalk.bold.hex(theme.primaryColor)(JSON.stringify(k)) + chalk.dim(": ") + renderValue(val, indent + 1))
+      .join(",\n");
+    return chalk.dim("{") + "\n" + inner + "\n" + pad + chalk.dim("}");
+  }
+  return String(v);
+}
+
+export function json(value: unknown): void {
+  process.stdout.write(renderValue(value, 0) + "\n");
+}

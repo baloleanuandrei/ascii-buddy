@@ -1,0 +1,25 @@
+import React, { useEffect, useState } from "react";
+import { render, Box } from "ink";
+import { Banner, Section, Success, ErrorMsg, Warning, Info, Spinner } from "./index.js";
+
+function App() {
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setDone(true), 1500);
+    return () => clearTimeout(id);
+  }, []);
+  return (
+    <Box flexDirection="column">
+      <Banner />
+      <Section title="Messages" />
+      <Success>Deployed</Success>
+      <ErrorMsg>Build failed</ErrorMsg>
+      <Warning>Deprecated API</Warning>
+      <Info>Tip: run --help</Info>
+      <Section title="Spinner" />
+      {done ? <Success>Work complete</Success> : <Spinner label="Doing important work..." />}
+    </Box>
+  );
+}
+
+render(<App />);

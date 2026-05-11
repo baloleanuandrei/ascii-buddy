@@ -1,0 +1,33 @@
+import chalk from "chalk";
+import { highlight } from "cli-highlight";
+import { theme } from "./theme.js";
+
+export interface CodeOptions {
+  lang?: string;
+  showLineNumbers?: boolean;
+  startLine?: number;
+}
+
+export function code(source: string, opts: CodeOptions = {}): void {
+  const lang = opts.lang ?? "plaintext";
+  let highlighted: string;
+  try {
+    highlighted = highlight(source, { language: lang, ignoreIllegals: true });
+  } catch {
+    highlighted = source;
+  }
+  const lines = highlighted.split("\n");
+  const start = opts.startLine ?? 1;
+  const width = String(start + lines.length - 1).length;
+  const c = chalk.hex(theme.primaryColor);
+  const out: string[] = [];
+  out.push(c.dim(`╭ ${lang}`));
+  for (let i = 0; i < lines.length; i++) {
+    const prefix = opts.showLineNumbers
+      ? chalk.dim(`${String(start + i).padStart(width, " ")} │ `)
+      : c.dim("│ ");
+    out.push(prefix + lines[i]);
+  }
+  out.push(c.dim("╰"));
+  process.stdout.write(out.join("\n") + "\n");
+}

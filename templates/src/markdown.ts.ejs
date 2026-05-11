@@ -1,0 +1,24 @@
+import { marked } from "marked";
+import { markedTerminal } from "marked-terminal";
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+marked.use(
+  markedTerminal({
+    heading: chalk.hex(theme.primaryColor).bold,
+    firstHeading: chalk.hex(theme.primaryColor).bold.underline,
+    blockquote: chalk.dim.italic,
+    code: chalk.hex("#22c55e"),
+    codespan: chalk.hex("#22c55e"),
+    strong: chalk.bold,
+    em: chalk.italic,
+    link: chalk.hex(theme.primaryColor).underline,
+    href: chalk.hex(theme.primaryColor).underline,
+    listitem: (text: string) => `  • ${text}`,
+  }) as Parameters<typeof marked.use>[0]
+);
+
+export function markdown(source: string): void {
+  const out = marked.parse(source) as string;
+  process.stdout.write(out);
+}

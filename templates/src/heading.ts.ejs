@@ -1,0 +1,22 @@
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+export type HeadingLevel = 1 | 2 | 3;
+
+export function heading(text: string, level: HeadingLevel = 1): void {
+  const c = chalk.hex(theme.primaryColor);
+  if (level === 1) {
+    const rule = theme.divider.fill.repeat(Math.max(text.length, 8));
+    process.stdout.write("\n" + c.bold(text.toUpperCase()) + "\n" + c.dim(rule) + "\n");
+    return;
+  }
+  if (level === 2) {
+    process.stdout.write("\n" + c.bold(text) + "\n" + chalk.dim(theme.divider.fill.repeat(text.length)) + "\n");
+    return;
+  }
+  process.stdout.write("\n" + c(text) + "\n");
+}
+
+export const h1 = (text: string) => heading(text, 1);
+export const h2 = (text: string) => heading(text, 2);
+export const h3 = (text: string) => heading(text, 3);

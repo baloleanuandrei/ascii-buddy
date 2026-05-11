@@ -1,0 +1,45 @@
+import boxen, { type Options as BoxenOptions } from "boxen";
+import { diffLines } from "diff";
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+function borderStyle(): BoxenOptions["borderStyle"] {
+  const t: string = theme.tableBorders;
+  if (t === "rounded") return "round";
+  if (t === "double") return "double";
+  if (t === "ascii") return "classic";
+  return "single";
+}
+
+export interface BoxOptions {
+  title?: string;
+  padding?: number;
+  margin?: number;
+  borderColor?: string;
+}
+
+export function box(content: string, opts: BoxOptions = {}): string {
+  const rendered = boxen(content, {
+    title: opts.title,
+    padding: opts.padding ?? 1,
+    margin: opts.margin ?? 0,
+    borderStyle: borderStyle(),
+    borderColor: opts.borderColor ?? theme.primaryColor,
+  });
+  return rendered;
+}
+
+export function diff(before: string, after: string): string {
+  const parts = diffLines(before, after);
+  const out: string[] = [];
+  for (const part of parts) {
+    const lines = part.value.split("\n");
+    if (lines[lines.length - 1] === "") lines.pop();
+    for (const line of lines) {
+      if (part.added) out.push(chalk.green("+ " + line));
+      else if (part.removed) out.push(chalk.red("- " + line));
+      else out.push(chalk.dim("  " + line));
+    }
+  }
+  return out.join("\n");
+}

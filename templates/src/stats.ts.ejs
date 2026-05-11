@@ -1,0 +1,37 @@
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+export interface Stat {
+  label: string;
+  value: string | number;
+  delta?: string;
+  trend?: "up" | "down" | "flat";
+}
+
+export function stats(items: Stat[]): void {
+  const c = chalk.hex(theme.primaryColor);
+  const TREND = { up: chalk.hex("#22c55e")("▲"), down: chalk.hex("#ef4444")("▼"), flat: chalk.dim("◆") };
+  const cells = items.map((s) => {
+    const label = chalk.dim(s.label.toUpperCase());
+    const value = c.bold(String(s.value));
+    const trend = s.trend ? ` ${TREND[s.trend]}` : "";
+    const delta = s.delta ? ` ${chalk.dim(s.delta)}` : "";
+    return `${label}\n${value}${trend}${delta}`;
+  });
+  const widths = cells.map((cell) => {
+    return Math.max(...cell.split("\n").map((l) => stripAnsi(l).length));
+  });
+  const colW = Math.max(...widths) + 4;
+  const lines = ["", ""];
+  for (let i = 0; i < cells.length; i++) {
+    const [l1, l2] = cells[i].split("\n");
+    lines[0] += l1.padEnd(colW + (l1.length - stripAnsi(l1).length));
+    lines[1] += l2.padEnd(colW + (l2.length - stripAnsi(l2).length));
+  }
+  process.stdout.write(lines.join("\n") + "\n");
+}
+
+function stripAnsi(s: string): string {
+  // eslint-disable-next-line no-control-regex
+  return s.replace(/\x1b\[[0-9;]*m/g, "");
+}

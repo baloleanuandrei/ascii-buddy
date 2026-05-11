@@ -1,0 +1,38 @@
+"""Themed success/error/warning/info messages."""
+import sys
+from rich.console import Console
+from .theme import theme
+
+_stdout = Console()
+_stderr = Console(stderr=True)
+
+_COLORS = {
+    "success": "#22c55e",
+    "error": "#ef4444",
+    "warning": "#f59e0b",
+    "info": theme["primary_color"],
+}
+
+
+def _default(level: str) -> str:
+    return theme["microcopy"][level][0] if theme["microcopy"][level] else ""
+
+
+def success(message: str | None = None) -> None:
+    text = message if message is not None else _default("success")
+    _stdout.print(f"[{_COLORS['success']}]{theme['symbols']['success']}[/] {text}")
+
+
+def error(message: str | None = None) -> None:
+    text = message if message is not None else _default("error")
+    _stderr.print(f"[{_COLORS['error']}]{theme['symbols']['error']}[/] {text}")
+
+
+def warning(message: str | None = None) -> None:
+    text = message if message is not None else _default("warning")
+    _stdout.print(f"[{_COLORS['warning']}]{theme['symbols']['warning']}[/] {text}")
+
+
+def info(message: str | None = None) -> None:
+    text = message if message is not None else _default("info")
+    _stdout.print(f"[{_COLORS['info']}]{theme['symbols']['info']}[/] {text}")

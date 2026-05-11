@@ -1,0 +1,68 @@
+import { success, error, warning, info } from "./messages.js";
+
+type Level = "info" | "warn" | "error" | "fatal" | "debug" | "trace" | string;
+
+function emit(level: Level, msg: string): void {
+  switch (level) {
+    case "error":
+    case "fatal":
+      error(msg);
+      return;
+    case "warn":
+      warning(msg);
+      return;
+    case "info":
+      info(msg);
+      return;
+    default:
+      success(msg);
+  }
+}
+
+/**
+ * pino transport. Pipe pino output to this for branded console rendering.
+ *
+ *   import pino from "pino";
+ *   const logger = pino({}, pinoTransport());
+ */
+export function pinoTransport(): NodeJS.WritableStream {
+  const { Writable } = require("node:stream") as typeof import("node:stream");
+  return new Writable({
+    write(chunk: Buffer, _enc: BufferEncoding, cb: (err?: Error) => void) {
+      const lines = chunk.toString("utf8").split("\n").filter(Boolean);
+      for (const line of lines) {
+        try {
+          const obj = JSON.parse(line);
+          const lvl = pinoLevelToName(obj.level);
+          emit(lvl, obj.msg ?? String(obj));
+        } catch {
+          emit("info", line);
+        }
+      }
+      cb();
+    },
+  });
+}
+
+function pinoLevelToName(level: number | string): Level {
+  if (typeof level === "string") return level;
+  if (level >= 60) return "fatal";
+  if (level >= 50) return "error";
+  if (level >= 40) return "warn";
+  if (level >= 30) return "info";
+  return "debug";
+}
+
+/**
+ * winston-compatible format. Returns a callable for printf-style transports.
+ *
+ *   import winston from "winston";
+ *   const logger = winston.createLogger({
+ *     format: winston.format.printf(winstonFormatter),
+ *     transports: [new winston.transports.Console()],
+ *   });
+ */
+export function winstonFormatter(info: { level: string; message: string }): string {
+  emit(info.level, info.message);
+  return "";
+}

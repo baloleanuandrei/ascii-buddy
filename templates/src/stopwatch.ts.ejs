@@ -1,0 +1,57 @@
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+function fmt(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const ss = (s % 60).toString().padStart(2, "0");
+  return `${m}:${ss}`;
+}
+
+export interface Stopwatch {
+  stop(): number;
+}
+
+export function stopwatch(label = "elapsed"): Stopwatch {
+  const start = Date.now();
+  const c = chalk.hex(theme.primaryColor);
+  const interval = setInterval(() => {
+    const elapsed = Date.now() - start;
+    process.stdout.write(`\r${chalk.dim(label)} ${c(fmt(elapsed))}  `);
+  }, 250);
+  return {
+    stop(): number {
+      clearInterval(interval);
+      const elapsed = Date.now() - start;
+      process.stdout.write(`\r${chalk.dim(label)} ${c(fmt(elapsed))}  \n`);
+      return elapsed;
+    },
+  };
+}
+
+export interface Countdown {
+  cancel(): void;
+}
+
+export function countdown(seconds: number, label = "expires in", onDone?: () => void): Countdown {
+  const target = Date.now() + seconds * 1000;
+  const c = chalk.hex(theme.primaryColor);
+  const tick = () => {
+    const remaining = Math.max(0, target - Date.now());
+    const s = Math.ceil(remaining / 1000);
+    process.stdout.write(`\r${chalk.dim(label)} ${c(fmt(remaining))}  `);
+    if (remaining <= 0) {
+      clearInterval(id);
+      process.stdout.write("\n");
+      onDone?.();
+    }
+  };
+  tick();
+  const id = setInterval(tick, 250);
+  return {
+    cancel(): void {
+      clearInterval(id);
+      process.stdout.write("\n");
+    },
+  };
+}

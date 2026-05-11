@@ -1,0 +1,19 @@
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+export interface EmptyStateOptions {
+  hint?: string;
+  command?: string;
+}
+
+export function emptyState(title: string, opts: EmptyStateOptions = {}): void {
+  const c = chalk.hex(theme.primaryColor);
+  const lines = [
+    "",
+    c.dim(theme.symbols.info + "  " + title),
+  ];
+  if (opts.hint) lines.push(chalk.dim("   " + opts.hint));
+  if (opts.command) lines.push(chalk.dim("   try:") + " " + c(opts.command));
+  lines.push("");
+  process.stdout.write(lines.join("\n") + "\n");
+}

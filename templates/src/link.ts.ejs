@@ -1,0 +1,19 @@
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+const SUPPORTS_LINKS =
+  process.env.TERM_PROGRAM === "iTerm.app" ||
+  process.env.TERM_PROGRAM === "vscode" ||
+  process.env.TERM_PROGRAM === "WezTerm" ||
+  process.env.TERM === "xterm-kitty" ||
+  process.env.WT_SESSION !== undefined;
+
+const OSC = "\u001b]";
+const BEL = "\u0007";
+const SEP = ";";
+
+export function link(text: string, url: string): string {
+  const styled = chalk.hex(theme.primaryColor).underline(text);
+  if (!SUPPORTS_LINKS) return `${styled} (${chalk.dim(url)})`;
+  return [OSC, "8", SEP, SEP, url, BEL, styled, OSC, "8", SEP, SEP, BEL].join("");
+}

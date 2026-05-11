@@ -1,0 +1,13 @@
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+const BANNER_ART = <%- JSON.stringify(bannerArt) %>;
+
+export function banner(): void {
+  const colored = chalk.hex(theme.primaryColor)(BANNER_ART);
+  process.stdout.write(colored + "\n");
+  if (theme.tagline) {
+    process.stdout.write(chalk.hex(theme.accentColor).dim(theme.tagline) + "\n");
+  }
+  process.stdout.write("\n");
+}

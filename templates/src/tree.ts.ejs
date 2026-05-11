@@ -1,0 +1,30 @@
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+export interface TreeNode {
+  label: string;
+  children?: TreeNode[];
+}
+
+function renderNode(node: TreeNode, prefix: string, isLast: boolean, isRoot: boolean): string[] {
+  const c = chalk.hex(theme.primaryColor);
+  const lines: string[] = [];
+  if (isRoot) {
+    lines.push(c(node.label));
+  } else {
+    const connector = isLast ? "└─ " : "├─ ";
+    lines.push(prefix + chalk.dim(connector) + node.label);
+  }
+  const children = node.children ?? [];
+  const childPrefix = isRoot ? "" : prefix + (isLast ? "   " : chalk.dim("│  "));
+  children.forEach((child, i) => {
+    const last = i === children.length - 1;
+    lines.push(...renderNode(child, childPrefix, last, false));
+  });
+  return lines;
+}
+
+export function tree(root: TreeNode): void {
+  const lines = renderNode(root, "", true, true);
+  process.stdout.write(lines.join("\n") + "\n");
+}

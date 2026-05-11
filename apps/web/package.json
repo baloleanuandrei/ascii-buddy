@@ -1,0 +1,31 @@
+{
+  "name": "@asciibuddy/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@asciibuddy/core": "workspace:*",
+    "@asciibuddy/pack-minimal-mono": "workspace:*",
+    "@asciibuddy/pack-retro-terminal": "workspace:*",
+    "@asciibuddy/pack-candy": "workspace:*",
+    "@asciibuddy/pack-nord": "workspace:*",
+    "@asciibuddy/pack-solarized": "workspace:*",
+    "@asciibuddy/pack-cyberpunk": "workspace:*",
+    "@asciibuddy/pack-corporate": "workspace:*",
+    "ansi-to-html": "^0.7.2",
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.5.0"
+  }
+}

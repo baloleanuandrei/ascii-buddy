@@ -1,21 +1,23 @@
 {
-  "name": "ascii-buddy",
-  "version": "2.0.0",
-  "description": "Generate and share your ASCII buddy companion card from Claude Code",
-  "bin": {
-    "ascii-buddy": "bin/cli.js"
-  },
-  "files": [
-    "bin/"
-  ],
-  "license": "MIT",
-  "main": "index.js",
+  "name": "asciibuddy-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter @asciibuddy/cli dev",
+    "init": "pnpm --filter @asciibuddy/cli start init",
+    "test": "vitest run"
   },
-  "keywords": [],
-  "author": "",
   "devDependencies": {
-    "@playwright/test": "^1.59.1"
+    "typescript": "^5.5.0",
+    "@types/node": "^20.12.0",
+    "ejs": "^3.1.10",
+    "@types/ejs": "^3.1.5",
+    "vitest": "^2.0.0",
+    "@asciibuddy/core": "workspace:*",
+    "@asciibuddy/pack-minimal-mono": "workspace:*",
+    "@asciibuddy/pack-retro-terminal": "workspace:*",
+    "@asciibuddy/pack-candy": "workspace:*"
   }
 }

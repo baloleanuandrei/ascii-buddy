@@ -1,0 +1,33 @@
+export interface ColumnsOptions {
+  width?: number;
+  padding?: number;
+  minColWidth?: number;
+}
+
+function visibleLen(s: string): number {
+  // eslint-disable-next-line no-control-regex
+  return s.replace(/\x1b\[[0-9;]*m/g, "").length;
+}
+
+export function columns(items: string[], opts: ColumnsOptions = {}): void {
+  if (items.length === 0) return;
+  const termWidth = opts.width ?? (process.stdout.columns ?? 80);
+  const padding = opts.padding ?? 2;
+  const longest = Math.max(...items.map(visibleLen));
+  const colWidth = Math.max(opts.minColWidth ?? 0, longest) + padding;
+  const cols = Math.max(1, Math.floor(termWidth / colWidth));
+  const rows = Math.ceil(items.length / cols);
+  const out: string[] = [];
+  for (let r = 0; r < rows; r++) {
+    const parts: string[] = [];
+    for (let c = 0; c < cols; c++) {
+      const idx = r * cols + c;
+      if (idx >= items.length) break;
+      const item = items[idx];
+      const pad = colWidth - visibleLen(item);
+      parts.push(item + " ".repeat(Math.max(0, pad)));
+    }
+    out.push(parts.join(""));
+  }
+  process.stdout.write(out.join("\n") + "\n");
+}

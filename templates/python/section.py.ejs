@@ -1,0 +1,14 @@
+"""Section divider."""
+import shutil
+from rich.console import Console
+from .theme import theme
+
+_console = Console()
+
+
+def section(title: str) -> None:
+    div = theme["divider"]
+    width = shutil.get_terminal_size((80, 20)).columns
+    head = f"{div['left']}{title}{div['right']}"
+    fill = div["fill"] * max(0, width - len(head) - 1)
+    _console.print(f"[{theme['primary_color']}]{head}[/][dim] {fill}[/]")

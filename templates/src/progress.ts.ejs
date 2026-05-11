@@ -1,0 +1,56 @@
+import cliProgress from "cli-progress";
+import ora, { type Ora } from "ora";
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+export interface ProgressBar {
+  update(value: number): void;
+  increment(delta?: number): void;
+  stop(): void;
+}
+
+export function progress(total: number, label = ""): ProgressBar {
+  const color = chalk.hex(theme.primaryColor);
+  const bar = new cliProgress.SingleBar(
+    {
+      format: `${label ? color(label) + " " : ""}${color("{bar}")} {percentage}% | {value}/{total}`,
+      barCompleteChar: "█",
+      barIncompleteChar: "░",
+      hideCursor: true,
+    },
+    cliProgress.Presets.shades_classic
+  );
+  bar.start(total, 0);
+  return {
+    update: (value) => bar.update(value),
+    increment: (delta = 1) => bar.increment(delta),
+    stop: () => bar.stop(),
+  };
+}
+
+export interface Task {
+  title: string;
+  run: () => Promise<void> | void;
+}
+
+export async function tasks(items: Task[]): Promise<void> {
+  for (const t of items) {
+    const instance: Ora = ora({
+      text: chalk.hex(theme.primaryColor)(t.title),
+      spinner: { frames: [...theme.spinnerFrames], interval: theme.spinnerInterval },
+    }).start();
+    try {
+      await t.run();
+      instance.stopAndPersist({
+        symbol: chalk.hex("#22c55e")(theme.symbols.success),
+        text: t.title,
+      });
+    } catch (err) {
+      instance.stopAndPersist({
+        symbol: chalk.hex("#ef4444")(theme.symbols.error),
+        text: `${t.title} — ${(err as Error).message}`,
+      });
+      throw err;
+    }
+  }
+}

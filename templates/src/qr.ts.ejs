@@ -1,0 +1,11 @@
+import qrcodeTerminal from "qrcode-terminal";
+
+export interface QrOptions {
+  small?: boolean;
+}
+
+export function qr(data: string, opts: QrOptions = {}): void {
+  qrcodeTerminal.generate(data, { small: opts.small ?? true }, (out) => {
+    process.stdout.write(out + "\n");
+  });
+}

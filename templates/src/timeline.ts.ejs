@@ -1,0 +1,32 @@
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+export interface TimelineEntry {
+  time?: string;
+  title: string;
+  body?: string;
+  kind?: "success" | "error" | "warning" | "info";
+}
+
+const KIND_COLOR: Record<NonNullable<TimelineEntry["kind"]>, string> = {
+  success: "#22c55e",
+  error: "#ef4444",
+  warning: "#f59e0b",
+  info: theme.primaryColor,
+};
+
+export function timeline(entries: TimelineEntry[]): void {
+  const lines: string[] = [];
+  entries.forEach((e, i) => {
+    const color = KIND_COLOR[e.kind ?? "info"];
+    const dot = chalk.hex(color)("●");
+    const bar = chalk.dim("│");
+    const time = e.time ? chalk.dim(`[${e.time}] `) : "";
+    lines.push(`${dot} ${time}${chalk.bold(e.title)}`);
+    if (e.body) {
+      for (const bl of e.body.split("\n")) lines.push(`${bar} ${chalk.dim(bl)}`);
+    }
+    if (i < entries.length - 1) lines.push(bar);
+  });
+  process.stdout.write(lines.join("\n") + "\n");
+}

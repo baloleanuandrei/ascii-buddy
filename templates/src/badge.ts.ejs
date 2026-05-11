@@ -1,0 +1,21 @@
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+export type BadgeTone = "default" | "success" | "warning" | "error" | "info" | "neutral";
+
+const TONE_BG: Record<BadgeTone, string> = {
+  default: theme.primaryColor,
+  success: "#16a34a",
+  warning: "#d97706",
+  error: "#dc2626",
+  info: theme.primaryColor,
+  neutral: "#525252",
+};
+
+export function badge(text: string, tone: BadgeTone = "default"): string {
+  return chalk.bgHex(TONE_BG[tone]).white(` ${text} `);
+}
+
+export function badges(items: Array<{ text: string; tone?: BadgeTone }>): string {
+  return items.map((i) => badge(i.text, i.tone)).join(" ");
+}

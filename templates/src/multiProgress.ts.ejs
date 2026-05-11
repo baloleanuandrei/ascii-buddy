@@ -1,0 +1,39 @@
+import cliProgress from "cli-progress";
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+export interface MultiProgress {
+  add(label: string, total: number): MultiProgressBar;
+  stop(): void;
+}
+
+export interface MultiProgressBar {
+  update(value: number): void;
+  increment(delta?: number): void;
+  setTotal(total: number): void;
+}
+
+export function multiProgress(): MultiProgress {
+  const c = chalk.hex(theme.primaryColor);
+  const multi = new cliProgress.MultiBar(
+    {
+      format: `${c("{label}")} ${c("{bar}")} {percentage}% | {value}/{total}`,
+      barCompleteChar: "█",
+      barIncompleteChar: "░",
+      hideCursor: true,
+      clearOnComplete: false,
+    },
+    cliProgress.Presets.shades_classic
+  );
+  return {
+    add(label, total) {
+      const bar = multi.create(total, 0, { label: label.padEnd(20) });
+      return {
+        update: (v) => bar.update(v),
+        increment: (d = 1) => bar.increment(d),
+        setTotal: (t) => bar.setTotal(t),
+      };
+    },
+    stop: () => multi.stop(),
+  };
+}

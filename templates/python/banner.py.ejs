@@ -1,0 +1,12 @@
+"""Branded banner."""
+from rich.console import Console
+from .theme import theme
+
+_console = Console()
+_ART = r"""<%- bannerArt %>"""
+
+
+def banner() -> None:
+    _console.print(_ART, style=theme["primary_color"])
+    if theme["tagline"]:
+        _console.print(theme["tagline"], style="dim")

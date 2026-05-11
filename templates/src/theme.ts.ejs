@@ -1,0 +1,21 @@
+export const theme = {
+  name: <%- JSON.stringify(spec.name) %>,
+  tagline: <%- JSON.stringify(spec.tagline ?? null) %>,
+  primaryColor: <%- JSON.stringify(spec.primaryColor) %>,
+  accentColor: <%- JSON.stringify(spec.accentColor ?? spec.primaryColor) %>,
+  pack: <%- JSON.stringify(spec.pack) %>,
+  tone: <%- JSON.stringify(spec.tone) %>,
+  symbols: <%- JSON.stringify(pack.symbols) %>,
+  divider: <%- JSON.stringify(pack.sectionDivider) %>,
+  tableBorders: <%- JSON.stringify(pack.tableBorders) %>,
+  spinnerFrames: <%- JSON.stringify(pack.spinnerFrames) %>,
+  spinnerInterval: <%- pack.spinnerInterval %>,
+  microcopy: {
+    success: <%- JSON.stringify(pack.microcopy.success[spec.tone]) %>,
+    error: <%- JSON.stringify(pack.microcopy.error[spec.tone]) %>,
+    warning: <%- JSON.stringify(pack.microcopy.warning[spec.tone]) %>,
+    info: <%- JSON.stringify(pack.microcopy.info[spec.tone]) %>,
+  },
+} as const;
+
+export type Theme = typeof theme;

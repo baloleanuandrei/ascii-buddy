@@ -1,0 +1,9 @@
+{
+  "name": "Acme",
+  "packageName": "@acme/cli-ui",
+  "tagline": "Ship faster.",
+  "primaryColor": "#7C3AED",
+  "pack": "minimal-mono",
+  "figletFont": "ANSI Shadow",
+  "tone": "terse"
+}

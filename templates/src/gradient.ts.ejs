@@ -1,0 +1,11 @@
+import gradientString from "gradient-string";
+import { theme } from "./theme.js";
+
+export function gradient(text: string, colors?: string[]): string {
+  const cs = colors ?? [theme.primaryColor, theme.accentColor];
+  return gradientString(...cs)(text);
+}
+
+export function gradientBanner(text: string, colors?: string[]): void {
+  process.stdout.write(gradient(text, colors) + "\n");
+}

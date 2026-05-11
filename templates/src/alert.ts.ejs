@@ -1,0 +1,37 @@
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+export type AlertKind = "info" | "success" | "warning" | "error" | "note";
+
+const KIND_STYLE: Record<AlertKind, { color: string; symbol: string }> = {
+  info: { color: theme.primaryColor, symbol: theme.symbols.info },
+  success: { color: "#22c55e", symbol: theme.symbols.success },
+  warning: { color: "#f59e0b", symbol: theme.symbols.warning },
+  error: { color: "#ef4444", symbol: theme.symbols.error },
+  note: { color: "#a3a3a3", symbol: theme.symbols.info },
+};
+
+export interface AlertOptions {
+  kind?: AlertKind;
+  title?: string;
+  actions?: string[];
+}
+
+export function alert(body: string, opts: AlertOptions = {}): void {
+  const kind = opts.kind ?? "info";
+  const { color, symbol } = KIND_STYLE[kind];
+  const c = chalk.hex(color);
+  const bar = c("│");
+  const lines: string[] = [];
+
+  const head = opts.title
+    ? `${c(symbol)} ${chalk.bold(opts.title)}`
+    : `${c(symbol)} ${chalk.bold(kind.toUpperCase())}`;
+  lines.push(head);
+  for (const line of body.split("\n")) lines.push(`${bar} ${line}`);
+  if (opts.actions && opts.actions.length > 0) {
+    lines.push(bar);
+    for (const a of opts.actions) lines.push(`${bar} ${chalk.dim("→")} ${a}`);
+  }
+  process.stdout.write(lines.join("\n") + "\n");
+}

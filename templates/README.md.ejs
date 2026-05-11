@@ -1,0 +1,49 @@
+# <%= spec.packageName %>
+
+<%= spec.name %>'s branded CLI UI components.<% if (spec.tagline) { %> _<%= spec.tagline %>_<% } %>
+
+Generated with [asciibuddy](https://asciibuddy.dev) · pack: `<%= spec.pack %>` · tone: `<%= spec.tone %>`
+
+## Install
+
+```bash
+npm install <%= spec.packageName %>
+```
+
+## Usage
+
+```ts
+import {
+  banner,
+  success,
+  error,
+  warning,
+  info,
+  section,
+  table,
+  spinner,
+} from "<%= spec.packageName %>";
+
+banner();
+section("Configuration");
+const stop = spinner("Deploying...");
+// ... do work
+stop();
+success("Deployed");
+error("Build failed");
+warning("Using deprecated API");
+info("Tip: run --help");
+table(
+  ["Name", "Status"],
+  [
+    ["api", "ready"],
+    ["worker", "ready"],
+  ]
+);
+```
+
+## Preview
+
+```bash
+npm run preview
+```

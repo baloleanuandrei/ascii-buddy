@@ -1,0 +1,23 @@
+"""Branded table."""
+from rich.console import Console
+from rich.table import Table
+from rich import box as rich_box
+from .theme import theme
+
+_console = Console()
+
+_BORDER_MAP = {
+    "rounded": rich_box.ROUNDED,
+    "single": rich_box.SQUARE,
+    "double": rich_box.DOUBLE,
+    "ascii": rich_box.ASCII,
+}
+
+
+def table(headers: list[str], rows: list[list[str]]) -> None:
+    t = Table(box=_BORDER_MAP.get(theme["table_borders"], rich_box.SQUARE), header_style=theme["primary_color"])
+    for h in headers:
+        t.add_column(h)
+    for r in rows:
+        t.add_row(*r)
+    _console.print(t)

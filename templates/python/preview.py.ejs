@@ -1,0 +1,33 @@
+"""Preview the generated <%= spec.name %> CLI UI."""
+import time
+<% if (has("banner")) { %>from .banner import banner
+<% } %><% if (has("messages")) { %>from .messages import success, error, warning, info
+<% } %><% if (has("section")) { %>from .section import section
+<% } %><% if (has("table")) { %>from .table import table
+<% } %><% if (has("spinner")) { %>from .spinner import spinner
+<% } %>
+
+def main() -> None:
+<% if (has("banner")) { %>    banner()
+<% } %><% if (has("messages")) { %><% if (has("section")) { %>    section("Messages")
+<% } %>    success()
+    success("Deployed to <%= spec.name.toLowerCase() %>.com")
+    error()
+    error("Build failed: missing env var")
+    warning()
+    warning("Using deprecated API")
+    info()
+    info("Tip: run --help for usage")
+<% } %><% if (has("table")) { %><% if (has("section")) { %>    section("Table")
+<% } %>    table(
+        ["Service", "Status", "Region"],
+        [["api", "ready", "iad1"], ["worker", "ready", "sfo1"], ["queue", "pending", "fra1"]],
+    )
+<% } %><% if (has("spinner")) { %><% if (has("section")) { %>    section("Spinner")
+<% } %>    with spinner("Doing important work..."):
+        time.sleep(1.0)
+<% if (has("messages")) { %>    success("Work complete")
+<% } %><% } %>
+
+if __name__ == "__main__":
+    main()

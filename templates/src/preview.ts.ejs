@@ -1,0 +1,194 @@
+import {
+<% if (has("banner")) { %>  banner,
+<% } %><% if (has("messages")) { %>  success,
+  error,
+  warning,
+  info,
+<% } %><% if (has("section")) { %>  section,
+<% } %><% if (has("table")) { %>  table,
+<% } %><% if (has("spinner")) { %>  spinner,
+<% } %><% if (has("progress")) { %>  progress,
+  tasks,
+<% } %><% if (has("box")) { %>  box,
+  diff,
+<% } %><% if (has("errors")) { %>  formatError,
+<% } %><% if (has("heading")) { %>  heading,
+<% } %><% if (has("alert")) { %>  alert,
+<% } %><% if (has("badge")) { %>  badge,
+  badges,
+<% } %><% if (has("defList")) { %>  defList,
+<% } %><% if (has("tree")) { %>  tree,
+<% } %><% if (has("steps")) { %>  steps,
+<% } %><% if (has("stats")) { %>  stats,
+<% } %><% if (has("code")) { %>  code,
+<% } %><% if (has("timeline")) { %>  timeline,
+<% } %><% if (has("emptyState")) { %>  emptyState,
+<% } %><% if (has("rule")) { %>  rule,
+<% } %><% if (has("columns")) { %>  columns,
+<% } %><% if (has("sparkline")) { %>  sparkline,
+<% } %><% if (has("barChart")) { %>  barChart,
+<% } %><% if (has("gauge")) { %>  gauge,
+<% } %><% if (has("json")) { %>  json,
+<% } %><% if (has("markdown")) { %>  markdown,
+<% } %><% if (has("link")) { %>  link,
+<% } %><% if (has("gradient")) { %>  gradient,
+<% } %>} from "./index.js";
+
+async function main() {
+<% if (has("banner")) { %>  banner();
+<% } %>
+<% if (has("messages")) { %><% if (has("section")) { %>  section("Messages");
+<% } %>  success();
+  success("Deployed to <%= spec.name.toLowerCase() %>.com");
+  error();
+  error("Build failed: missing env var");
+  warning();
+  warning("Using deprecated API");
+  info();
+  info("Tip: run --help for usage");
+<% } %>
+<% if (has("table")) { %><% if (has("section")) { %>  section("Table");
+<% } %>  table(
+    ["Service", "Status", "Region"],
+    [
+      ["api", "ready", "iad1"],
+      ["worker", "ready", "sfo1"],
+      ["queue", "pending", "fra1"],
+    ]
+  );
+<% } %>
+<% if (has("spinner")) { %><% if (has("section")) { %>  section("Spinner");
+<% } %>  const stop = spinner("Doing important work...");
+  await new Promise((r) => setTimeout(r, 1200));
+  stop();
+<% if (has("messages")) { %>  success("Work complete");
+<% } %><% } %>
+<% if (has("progress")) { %><% if (has("section")) { %>  section("Progress");
+<% } %>  const bar = progress(20, "Downloading");
+  for (let i = 0; i < 20; i++) {
+    await new Promise((r) => setTimeout(r, 40));
+    bar.increment();
+  }
+  bar.stop();
+
+<% if (has("section")) { %>  section("Tasks");
+<% } %>  await tasks([
+    { title: "Resolve dependencies", run: () => new Promise((r) => setTimeout(r, 300)) },
+    { title: "Compile sources",       run: () => new Promise((r) => setTimeout(r, 400)) },
+    { title: "Bundle assets",         run: () => new Promise((r) => setTimeout(r, 300)) },
+  ]);
+<% } %>
+<% if (has("box")) { %><% if (has("section")) { %>  section("Box");
+<% } %>  process.stdout.write(box("Branded panel content.\nMulti-line supported.", { title: "<%= spec.name %>" }) + "\n");
+
+<% if (has("section")) { %>  section("Diff");
+<% } %>  process.stdout.write(diff("hello\nworld\n", "hello\nbrand\n") + "\n");
+<% } %>
+<% if (has("errors")) { %><% if (has("section")) { %>  section("Errors");
+<% } %>  try {
+    throw new Error("Example failure for preview");
+  } catch (e) {
+    process.stdout.write(formatError(e) + "\n");
+  }
+<% } %>
+<% if (has("heading")) { %>  heading("Heading levels", 1);
+  heading("Subsection", 2);
+  heading("Detail", 3);
+<% } %>
+<% if (has("alert")) { %><% if (has("section")) { %>  section("Alert");
+<% } %>  alert("Database migrations completed successfully.\nAll 12 tables updated.", { kind: "success", title: "Deploy" });
+  alert("Token expires in 2 days. Rotate before expiry.", { kind: "warning", title: "Heads up", actions: ["acme auth rotate", "docs: rotation"] });
+<% } %>
+<% if (has("badge")) { %><% if (has("section")) { %>  section("Badges");
+<% } %>  process.stdout.write(badges([
+    { text: "v2.0.0", tone: "default" },
+    { text: "stable", tone: "success" },
+    { text: "beta", tone: "warning" },
+    { text: "deprecated", tone: "error" },
+    { text: "internal", tone: "neutral" },
+  ]) + "\n");
+<% } %>
+<% if (has("defList")) { %><% if (has("section")) { %>  section("Config");
+<% } %>  defList({
+    "Environment": "production",
+    "Region": "iad1",
+    "Replicas": 3,
+    "Auto-scale": true,
+    "Secrets": null,
+  });
+<% } %>
+<% if (has("tree")) { %><% if (has("section")) { %>  section("Tree");
+<% } %>  tree({
+    label: "<%= spec.name.toLowerCase() %>/",
+    children: [
+      { label: "src/", children: [
+        { label: "index.ts" },
+        { label: "config.ts" },
+      ] },
+      { label: "tests/", children: [{ label: "index.test.ts" }] },
+      { label: "package.json" },
+    ],
+  });
+<% } %>
+<% if (has("steps")) { %><% if (has("section")) { %>  section("Steps");
+<% } %>  steps(["Init", "Build", "Test", "Deploy"], 2);
+<% } %>
+<% if (has("stats")) { %><% if (has("section")) { %>  section("Stats");
+<% } %>  stats([
+    { label: "Requests", value: "12.4k", delta: "+3.2%", trend: "up" },
+    { label: "P99", value: "84ms", delta: "-12ms", trend: "down" },
+    { label: "Errors", value: "0.04%", trend: "flat" },
+  ]);
+<% } %>
+<% if (has("code")) { %><% if (has("section")) { %>  section("Code");
+<% } %>  code("const x: number = 42;\nfunction greet(name: string) {\n  return `hello, ${name}`;\n}", { lang: "typescript", showLineNumbers: true });
+<% } %>
+<% if (has("timeline")) { %><% if (has("section")) { %>  section("Timeline");
+<% } %>  timeline([
+    { time: "10:01", title: "Build started", kind: "info" },
+    { time: "10:04", title: "Tests passed", body: "248 tests, 0 failures", kind: "success" },
+    { time: "10:05", title: "Deploy queued", kind: "info" },
+    { time: "10:08", title: "Deploy complete", kind: "success" },
+  ]);
+<% } %>
+<% if (has("emptyState")) { %><% if (has("section")) { %>  section("Empty state");
+<% } %>  emptyState("No deployments yet.", { hint: "Run a deploy to see history here.", command: "<%= spec.name.toLowerCase() %> deploy" });
+<% } %>
+<% if (has("rule")) { %>  rule("v2.0.0");
+<% } %>
+<% if (has("columns")) { %><% if (has("section")) { %>  section("Columns");
+<% } %>  columns(["api", "worker", "queue", "scheduler", "auth", "cache", "billing", "search", "ingest", "ml"]);
+<% } %>
+<% if (has("sparkline")) { %><% if (has("section")) { %>  section("Sparklines");
+<% } %>  process.stdout.write("requests  " + sparkline([3, 5, 8, 4, 9, 12, 6, 7, 11, 14, 9, 13, 16]) + "  +18%\n");
+  process.stdout.write("latency   " + sparkline([82, 90, 88, 95, 91, 84, 80, 78, 82, 79, 75, 72, 70]) + "  -14ms\n");
+<% } %>
+<% if (has("barChart")) { %><% if (has("section")) { %>  section("Bundle size");
+<% } %>  barChart([
+    { label: "client.js", value: 248 },
+    { label: "vendor.js", value: 612 },
+    { label: "styles.css", value: 84 },
+    { label: "fonts.woff", value: 156 },
+  ]);
+<% } %>
+<% if (has("gauge")) { %><% if (has("section")) { %>  section("Gauges");
+<% } %>  gauge(72, 100, { label: "disk", warnAt: 0.7, errorAt: 0.9 });
+  gauge(94, 100, { label: "memory", warnAt: 0.7, errorAt: 0.9 });
+  gauge(31, 100, { label: "cpu", warnAt: 0.7, errorAt: 0.9 });
+<% } %>
+<% if (has("json")) { %><% if (has("section")) { %>  section("JSON");
+<% } %>  json({ name: "<%= spec.name %>", version: "2.0.0", features: ["banner", "messages", "spinner"], deployed: true, replicas: 3, env: null });
+<% } %>
+<% if (has("markdown")) { %><% if (has("section")) { %>  section("Markdown");
+<% } %>  markdown("## What's new\n\n- Added 12 new components\n- Improved theme system\n\nSee [docs](https://example.com) or run `acme help`.");
+<% } %>
+<% if (has("link")) { %><% if (has("section")) { %>  section("Link");
+<% } %>  process.stdout.write("Dashboard: " + link("acme.dev/dashboard", "https://acme.dev/dashboard") + "\n");
+<% } %>
+<% if (has("gradient")) { %><% if (has("section")) { %>  section("Gradient");
+<% } %>  process.stdout.write(gradient("<%= spec.name.toUpperCase() %> — branded gradient", ["#7C3AED", "#22d3ee"]) + "\n");
+<% } %>
+  process.stdout.write("\n");
+}
+
+main();

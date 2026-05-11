@@ -1,0 +1,14 @@
+import React from "react";
+import { Box, Text } from "ink";
+import { theme } from "../theme.js";
+
+export function Section({ title }: { title: string }): React.ReactElement {
+  const { left, right, fill } = theme.divider;
+  const line = fill.repeat(40);
+  return (
+    <Box marginY={1}>
+      <Text color={theme.primaryColor}>{left}{title}{right}</Text>
+      <Text dimColor>{line}</Text>
+    </Box>
+  );
+}

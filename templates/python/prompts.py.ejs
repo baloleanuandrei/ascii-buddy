@@ -1,0 +1,19 @@
+"""Branded prompts via rich.prompt."""
+from rich.prompt import Prompt, Confirm
+from .theme import theme
+
+
+def _paint(message: str) -> str:
+    return f"[{theme['primary_color']}]{message}[/]"
+
+
+def text(message: str, default: str | None = None) -> str:
+    return Prompt.ask(_paint(message), default=default)
+
+
+def confirm(message: str, default: bool = True) -> bool:
+    return Confirm.ask(_paint(message), default=default)
+
+
+def select(message: str, choices: list[str], default: str | None = None) -> str:
+    return Prompt.ask(_paint(message), choices=choices, default=default or choices[0])

@@ -1,0 +1,67 @@
+import * as p from "@clack/prompts";
+import chalk from "chalk";
+import { theme } from "./theme.js";
+
+function paint(s: string): string {
+  return chalk.hex(theme.primaryColor)(s);
+}
+
+function check<T>(value: T | symbol): T {
+  if (p.isCancel(value)) {
+    p.cancel("Cancelled.");
+    process.exit(0);
+  }
+  return value as T;
+}
+
+export async function text(message: string, opts: { placeholder?: string; initialValue?: string } = {}): Promise<string> {
+  return check(await p.text({ message: paint(message), ...opts }));
+}
+
+export async function password(message: string): Promise<string> {
+  return check(await p.password({ message: paint(message) }));
+}
+
+export async function confirm(message: string, initialValue = true): Promise<boolean> {
+  return check(await p.confirm({ message: paint(message), initialValue }));
+}
+
+export interface Choice<T extends string = string> {
+  value: T;
+  label?: string;
+  hint?: string;
+}
+
+function toClackOptions<T extends string>(options: Choice<T>[]): Array<{ value: T; label: string; hint?: string }> {
+  return options.map((o) => {
+    const opt: { value: T; label: string; hint?: string } = {
+      value: o.value,
+      label: o.label ?? o.value,
+    };
+    if (o.hint !== undefined) opt.hint = o.hint;
+    return opt;
+  });
+}
+
+export async function select<T extends string>(message: string, options: Choice<T>[]): Promise<T> {
+  return check(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await p.select({ message: paint(message), options: toClackOptions(options) as any })
+  ) as T;
+}
+
+export async function multiselect<T extends string>(
+  message: string,
+  options: Choice<T>[],
+  opts: { required?: boolean; initialValues?: T[] } = {}
+): Promise<T[]> {
+  return check(
+    await p.multiselect({
+      message: paint(message),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      options: toClackOptions(options) as any,
+      required: opts.required ?? false,
+      initialValues: opts.initialValues,
+    })
+  ) as T[];
+}

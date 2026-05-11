@@ -1,0 +1,20 @@
+"""Computed theme for <%= spec.name %>."""
+theme = {
+    "name": <%- py(spec.name) %>,
+    "tagline": <%- py(spec.tagline ?? null) %>,
+    "primary_color": <%- py(spec.primaryColor) %>,
+    "accent_color": <%- py(spec.accentColor ?? spec.primaryColor) %>,
+    "pack": <%- py(spec.pack) %>,
+    "tone": <%- py(spec.tone) %>,
+    "symbols": <%- py(pack.symbols) %>,
+    "divider": <%- py(pack.sectionDivider) %>,
+    "table_borders": <%- py(pack.tableBorders) %>,
+    "spinner_frames": <%- py(pack.spinnerFrames) %>,
+    "spinner_interval": <%- pack.spinnerInterval %>,
+    "microcopy": {
+        "success": <%- py(pack.microcopy.success[spec.tone]) %>,
+        "error": <%- py(pack.microcopy.error[spec.tone]) %>,
+        "warning": <%- py(pack.microcopy.warning[spec.tone]) %>,
+        "info": <%- py(pack.microcopy.info[spec.tone]) %>,
+    },
+}
